@@ -11,7 +11,6 @@ from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
 import random
-import time  # Ensure to import time if you're using it
 
 # Function to prompt and save the bot token
 def set_bot_token():
@@ -111,15 +110,11 @@ def load_api_credentials():
 
 async def run_painters(cli, session_name, logger):
     logger.info("Started painters process")
-    while True:  # Keep running without long sleep
-        await painters(cli, session_name)
-        await asyncio.sleep(1)  # Adjust the sleep duration if needed
+    await painters(cli, session_name)
 
 async def run_mine_claimer(cli, session_name, logger):
     logger.info("Started mine claimer process")
-    while True:  # Keep running without long sleep
-        await mine_claimer(cli, session_name)
-        await asyncio.sleep(1)  # Adjust the sleep duration if needed
+    await mine_claimer(cli, session_name)
 
 def multithread_starter():
     if not os.path.exists("sessions"):
@@ -156,7 +151,7 @@ def stop_bot_polling():
         bot_thread.join()  # Ensure the thread is stopped properly
 
 def process():
-    os.system('clear')  # Clear the console at the start of the script
+    os.system('clear')  # Clear the console output at the start
     print(r"""{}
   ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
   ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -204,9 +199,10 @@ def process():
         elif option == "5":
             reset_session()
         elif option == "6":
-            stop_bot_polling()
-            print("Exiting...")
-            break  # Exit the main loop
+            stop_bot_polling()  # Stop the bot polling before exiting
+            break
+        else:
+            print("[!] Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     process()
