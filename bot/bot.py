@@ -1,133 +1,17 @@
 import os
 import threading
 import asyncio
-import hashlib
-import time
-import uuid
-import requests
-import json
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
-from bot.utils import night_sleep, Colors
+from bot.utils import Colors
 from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime, timedelta
 
-BOT_TOKEN = "7866801642:AAE07AwB-Q7utZ4DVahkUTzLtg_UoduH_yE"
-ADMIN_CHAT_ID = "6009176071"
+BOT_TOKEN = "7617710503:AAHinvjvw6d8Zgu1Ozfcy4Guby2obO6Fn5g"
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
-# File to store active keys and their information
-KEYS_FILE = "active_keys.json"
-
-# Load existing keys from file
-def load_keys():
-    if os.path.exists(KEYS_FILE):
-        with open(KEYS_FILE, 'r') as f:
-            return json.load(f)
-    return {}
-
-# Save keys to file
-def save_keys(keys):
-    with open(KEYS_FILE, 'w') as f:
-        json.dump(keys, f)
-
-# Dictionary to store active keys and their information
-active_keys = load_keys()
-
-def generate_license_key():
-    key = uuid.uuid4().hex
-    expiration_date = (datetime.now() + timedelta(days=5)).isoformat()
-    active_keys[key] = {"expiration": expiration_date, "user": None}
-    save_keys(active_keys)
-    return key
-
-def check_license(key, username):
-    if key in active_keys:
-        expiration = datetime.fromisoformat(active_keys[key]["expiration"])
-        if datetime.now() < expiration:
-            if active_keys[key]["user"] is None:
-                active_keys[key]["user"] = username
-                save_keys(active_keys)
-                bot.send_message(ADMIN_CHAT_ID, f"New user: {username} has activated key: {key}")
-                return True
-            elif active_keys[key]["user"] == username:
-                return True
-            else:
-                return "License key is already in use by another user"
-        else:
-            del active_keys[key]
-            save_keys(active_keys)
-            return False
-    return False
-
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Welcome! Use /generate_key to get a license key.")
-
-@bot.message_handler(commands=['generate_key'])
-def generate_key(message):
-    if str(message.chat.id) != ADMIN_CHAT_ID:
-        bot.reply_to(message, "You are not authorized to generate keys.")
-        return
-    
-    key = generate_license_key()
-    bot.reply_to(message, f"Generated key: {key}\nValid for 5 days.")
-
-@bot.message_handler(commands=['check_key'])
-def check_key(message):
-    key = message.text.split()[1] if len(message.text.split()) > 1 else None
-    if key:
-        result = check_license(key, message.from_user.username)
-        if result == True:
-            bot.reply_to(message, "Your key is valid and active.")
-        elif result == "License key is already in use by another user":
-            bot.reply_to(message, result)
-        else:
-            bot.reply_to(message, "Invalid or expired key.")
-    else:
-        bot.reply_to(message, "Please provide a key to check.")
-
-@bot.message_handler(commands=['active_users'])
-def active_users(message):
-    if str(message.chat.id) != ADMIN_CHAT_ID:
-        bot.reply_to(message, "You are not authorized to view active users.")
-        return
-    
-    user_count = sum(1 for info in active_keys.values() if info["user"] is not None)
-    user_list = "\n".join([f"Key: {key}, User: {info['user']}" for key, info in active_keys.items() if info["user"] is not None])
-    bot.reply_to(message, f"Total active users: {user_count}\n\n{user_list}")
-
-def multithread_starter(key, username):
-    result = check_license(key, username)
-    if result == True:
-        print("License key verified. Starting the script...")
-        if not os.path.exists("sessions"):
-            os.mkdir("sessions")
-        dirs = os.listdir("sessions/")
-        sessions = list(filter(lambda x: x.endswith(".session"), dirs))
-        sessions = list(map(lambda x: x.split(".session")[0], sessions))
-        
-        for session_name in sessions:
-            try:
-                cli = NotPx("sessions/" + session_name)
-
-                def run_painters():
-                    asyncio.run(painters(cli, session_name))
-
-                def run_mine_claimer():
-                    asyncio.run(mine_claimer(cli, session_name))
-
-                threading.Thread(target=run_painters).start()
-                threading.Thread(target=run_mine_claimer).start()
-            except Exception as e:
-                print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
-    elif result == "License key is already in use by another user":
-        print("[!] " + result)
-    else:
-        print("[!] Invalid or expired license key. Please contact the admin for a valid key.")
 
 def add_api_credentials():
     api_id = input("Enter API ID: ")
@@ -179,6 +63,28 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
+def multithread_starter():
+    if not os.path.exists("sessions"):
+        os.mkdir("sessions")
+    dirs = os.listdir("sessions/")
+    sessions = list(filter(lambda x: x.endswith(".session"), dirs))
+    sessions = list(map(lambda x: x.split(".session")[0], sessions))
+    
+    for session_name in sessions:
+        try:
+            cli = NotPx("sessions/" + session_name)
+
+            def run_painters():
+                asyncio.run(painters(cli, session_name))
+
+            def run_mine_claimer():
+                asyncio.run(mine_claimer(cli, session_name))
+
+            threading.Thread(target=run_painters).start()
+            threading.Thread(target=run_mine_claimer).start()
+        except Exception as e:
+            print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
+
 def process():
     print(r"""{}
 ███████  █████  ██    ██  █████  ███    ██ 
@@ -192,18 +98,6 @@ def process():
     print("Starting Telegram bot...")
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
-    
-    while True:
-        key = input("Enter your license key to use the script: ")
-        username = input("Enter your username: ")
-        result = check_license(key, username)
-        if result == True:
-            print("License key verified. You can now use the script.")
-            break
-        elif result == "License key is already in use by another user":
-            print("[!] " + result)
-        else:
-            print("[!] Invalid or expired license key. Please contact the admin for a valid key.")
     
     while True:
         print("\nMain Menu:")
@@ -231,7 +125,7 @@ def process():
             else:
                 print("[x] Session {} {}already exist{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
-            multithread_starter(key, username)
+            multithread_starter()
         elif option == "3":
             add_api_credentials()
         elif option == "4":
