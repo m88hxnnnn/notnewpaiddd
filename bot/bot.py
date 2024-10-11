@@ -3,8 +3,6 @@ import threading
 import asyncio
 import logging
 import fcntl  # For file locking
-import random
-import platform  # For clearing the console
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
 from bot.utils import Colors
@@ -12,6 +10,7 @@ from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
+import random
 
 # Function to prompt and save the bot token
 def set_bot_token():
@@ -130,8 +129,8 @@ def multithread_starter():
             logger = setup_logger(session_name)  # Create a logger for each session
 
             # Start painters and mine_claimers asynchronously
-            threading.Thread(target=asyncio.run, args=(run_painters(cli, session_name, logger),)).start()
-            threading.Thread(target=asyncio.run, args=(run_mine_claimer(cli, session_name, logger),)).start()
+            asyncio.run(run_painters(cli, session_name, logger))
+            asyncio.run(run_mine_claimer(cli, session_name, logger))
             logger.info("Started both threads for session: {}".format(session_name))
         except Exception as e:
             logger.error("Error on load session {}: {}".format(session_name, e))
@@ -151,12 +150,7 @@ def stop_bot_polling():
         bot.stop_polling()
         bot_thread.join()  # Ensure the thread is stopped properly
 
-def clear_console():
-    # Clear the console
-    os.system('cls' if platform.system() == 'Windows' else 'clear')
-
 def process():
-    clear_console()  # Clear console before starting
     print(r"""{}
   ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
   ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -190,21 +184,14 @@ def process():
                 if api_id and api_hash:
                     client = TelegramClient("sessions/" + unique_name, api_id, api_hash).start()
                     client.disconnect()
-                    print("[+] Session {} {}saved successfully{}.".format(unique_name, Colors.GREEN, Colors.END))
+                    print("[+] Session {} {}saved success{}.".format(unique_name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[x] Session {} {}already exists{}.".format(unique_name, Colors.RED, Colors.END))
+                print("[x] Session {} {}already exist{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
             multithread_starter()
         elif option == "3":
             add_api_credentials()
         elif option == "4":
             reset_api_credentials()
-        elif option == "5":
-            reset_session()
-        elif option == "6":
-            print("Exiting...")
-            stop_bot_polling()  # Stop polling on exit
-            break
-else:
