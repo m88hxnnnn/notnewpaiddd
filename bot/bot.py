@@ -1,14 +1,16 @@
 import os
 import threading
 import asyncio
-import logging  # Added for logging
+import logging
+import fcntl  # For file locking
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
 from bot.utils import Colors
 from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
-from datetime import datetime, timedelta
+from datetime import datetime
+import random
 
 # Function to prompt and save the bot token
 def set_bot_token():
@@ -43,13 +45,24 @@ def setup_logger(session_name):
     logger.addHandler(file_handler)
     return logger
 
+# Ensure unique session names to avoid conflicts
+def generate_unique_session_name(base_name):
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    random_str = str(random.randint(1000, 9999))
+    return f"{base_name}_{timestamp}_{random_str}"
+
 def add_api_credentials():
     api_id = input("Enter API ID: ")
     api_hash = input("Enter API Hash: ")
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
+    
+    # File lock to ensure safe writing
     with open(env_path, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)  # Lock the file exclusively
         f.write(f"API_ID={api_id}\n")
         f.write(f"API_HASH={api_hash}\n")
+        fcntl.flock(f, fcntl.LOCK_UN)  # Release the file lock
+
     print("[+] API credentials saved successfully in env.txt file.")
 
 def reset_api_credentials():
@@ -82,6 +95,7 @@ def load_api_credentials():
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
     if os.path.exists(env_path):
         with open(env_path, 'r') as f:
+            fcntl.flock(f, fcntl.LOCK_SH)  # Shared lock for reading
             lines = f.readlines()
             api_id = None
             api_hash = None
@@ -90,8 +104,17 @@ def load_api_credentials():
                     api_id = line.split('=')[1].strip()
                 elif line.startswith('API_HASH='):
                     api_hash = line.split('=')[1].strip()
+            fcntl.flock(f, fcntl.LOCK_UN)  # Release lock after reading
             return api_id, api_hash
     return None, None
+
+async def run_painters(cli, session_name, logger):
+    logger.info("Started painters process")
+    await painters(cli, session_name)
+
+async def run_mine_claimer(cli, session_name, logger):
+    logger.info("Started mine claimer process")
+    await mine_claimer(cli, session_name)
 
 def multithread_starter():
     if not os.path.exists("sessions"):
@@ -105,16 +128,9 @@ def multithread_starter():
             cli = NotPx("sessions/" + session_name)
             logger = setup_logger(session_name)  # Create a logger for each session
 
-            def run_painters():
-                logger.info("Started painters process")  # Log starting of process
-                asyncio.run(painters(cli, session_name))
-
-            def run_mine_claimer():
-                logger.info("Started mine claimer process")  # Log starting of process
-                asyncio.run(mine_claimer(cli, session_name))
-
-            threading.Thread(target=run_painters).start()
-            threading.Thread(target=run_mine_claimer).start()
+            # Start painters and mine_claimers asynchronously
+            asyncio.run(run_painters(cli, session_name, logger))
+            asyncio.run(run_mine_claimer(cli, session_name, logger))
             logger.info("Started both threads for session: {}".format(session_name))
         except Exception as e:
             logger.error("Error on load session {}: {}".format(session_name, e))
@@ -142,7 +158,7 @@ def process():
      ██ ██   ██  ██  ██  ██   ██ ██  ██ ██ 
 ███████ ██   ██   ████   ██   ██ ██   ████ 
                                                 
-            NotPx Auto Paint & Claim by @sgr - v1.0 {}""".format(Colors.BLUE, Colors.END))
+            NotPx Auto Paint & Claim by @Sakuingoo - v1.0 {}""".format(Colors.BLUE, Colors.END))
     
     start_bot_polling()  # Start polling at the beginning
     
@@ -159,14 +175,15 @@ def process():
         
         if option == "1":
             name = input("\nEnter Session name: ")
+            unique_name = generate_unique_session_name(name)
             if not os.path.exists("sessions"):
                 os.mkdir("sessions")
-            if not any(name in i for i in os.listdir("sessions/")):
+            if not any(unique_name in i for i in os.listdir("sessions/")):
                 api_id, api_hash = load_api_credentials()
                 if api_id and api_hash:
-                    client = TelegramClient("sessions/" + name, api_id, api_hash).start()
+                    client = TelegramClient("sessions/" + unique_name, api_id, api_hash).start()
                     client.disconnect()
-                    print("[+] Session {} {}saved success{}.".format(name, Colors.GREEN, Colors.END))
+                    print("[+] Session {} {}saved success{}.".format(unique_name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
@@ -177,16 +194,3 @@ def process():
             add_api_credentials()
         elif option == "4":
             reset_api_credentials()
-        elif option == "5":
-            reset_session()
-        elif option == "6":
-            print("Exiting...")
-            stop_bot_polling()  # Stop polling on exit
-            break
-        else:
-            print("[!] Invalid option. Please try again.")
-
-if __name__ == "__main__":
-    if not os.path.exists("sessions"):
-        os.mkdir("sessions")
-    process()
