@@ -11,6 +11,16 @@ from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
 import random
+import time
+import platform
+import pytz
+
+# Function to clear the console
+def clear_console():
+    if platform.system() == "Windows":
+        os.system("cls")
+    else:
+        os.system("clear")
 
 # Function to prompt and save the bot token
 def set_bot_token():
@@ -151,7 +161,7 @@ def stop_bot_polling():
         bot_thread.join()  # Ensure the thread is stopped properly
 
 def process():
-    os.system('clear')  # Clear the console output at the start
+    clear_console()  # Clear console at the beginning
     print(r"""{}
   ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
   ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -185,11 +195,11 @@ def process():
                 if api_id and api_hash:
                     client = TelegramClient("sessions/" + unique_name, api_id, api_hash).start()
                     client.disconnect()
-                    print("[+] Session {} {}saved success{}.".format(unique_name, Colors.GREEN, Colors.END))
+                    print("[+] Session {} {}saved successfully{}.".format(unique_name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[x] Session {} {}already exist{}.".format(name, Colors.RED, Colors.END))
+                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
             multithread_starter()
         elif option == "3":
@@ -199,7 +209,7 @@ def process():
         elif option == "5":
             reset_session()
         elif option == "6":
-            stop_bot_polling()  # Stop the bot polling before exiting
+            stop_bot_polling()  # Stop bot polling before exiting
             break
         else:
             print("[!] Invalid choice. Please try again.")
