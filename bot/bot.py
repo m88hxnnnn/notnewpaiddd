@@ -111,11 +111,15 @@ def load_api_credentials():
 
 async def run_painters(cli, session_name, logger):
     logger.info("Started painters process")
-    await painters(cli, session_name)
+    while True:  # Keep running without long sleep
+        await painters(cli, session_name)
+        await asyncio.sleep(1)  # Adjust the sleep duration if needed
 
 async def run_mine_claimer(cli, session_name, logger):
     logger.info("Started mine claimer process")
-    await mine_claimer(cli, session_name)
+    while True:  # Keep running without long sleep
+        await mine_claimer(cli, session_name)
+        await asyncio.sleep(1)  # Adjust the sleep duration if needed
 
 def multithread_starter():
     if not os.path.exists("sessions"):
@@ -202,9 +206,7 @@ def process():
         elif option == "6":
             stop_bot_polling()
             print("Exiting...")
-            break  # Exit the main loop to stop the script
-        else:
-            print("[!] Invalid choice. Please try again.")
+            break  # Exit the main loop
 
 if __name__ == "__main__":
     process()
