@@ -1,6 +1,7 @@
 import os
 import threading
 import asyncio
+import logging  # Added for logging
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
 from bot.utils import Colors
@@ -12,6 +13,25 @@ from datetime import datetime, timedelta
 BOT_TOKEN = "7617710503:AAHinvjvw6d8Zgu1Ozfcy4Guby2obO6Fn5g"
 
 bot = telebot.TeleBot(BOT_TOKEN)
+bot_thread = None  # Global reference to bot polling thread for proper stopping
+
+# Setup a logger for each session
+def setup_logger(session_name):
+    logger = logging.getLogger(session_name)
+    logger.setLevel(logging.INFO)
+
+    # Create a file handler for the log file
+    log_file = os.path.join("logs", f"{session_name}.log")
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    file_handler = logging.FileHandler(log_file)
+
+    # Create a logging format
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+
+    # Add the handler to the logger
+    logger.addHandler(file_handler)
+    return logger
 
 def add_api_credentials():
     api_id = input("Enter API ID: ")
@@ -73,17 +93,36 @@ def multithread_starter():
     for session_name in sessions:
         try:
             cli = NotPx("sessions/" + session_name)
+            logger = setup_logger(session_name)  # Create a logger for each session
 
             def run_painters():
+                logger.info("Started painters process")  # Log starting of process
                 asyncio.run(painters(cli, session_name))
 
             def run_mine_claimer():
+                logger.info("Started mine claimer process")  # Log starting of process
                 asyncio.run(mine_claimer(cli, session_name))
 
             threading.Thread(target=run_painters).start()
             threading.Thread(target=run_mine_claimer).start()
+            logger.info("Started both threads for session: {}".format(session_name))
         except Exception as e:
+            logger.error("Error on load session {}: {}".format(session_name, e))
             print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
+
+def start_bot_polling():
+    global bot_thread
+    if not bot_thread or not bot_thread.is_alive():
+        print("Starting Telegram bot polling...")
+        bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
+        bot_thread.start()
+
+def stop_bot_polling():
+    global bot_thread
+    if bot_thread and bot_thread.is_alive():
+        print("Stopping Telegram bot polling...")
+        bot.stop_polling()
+        bot_thread.join()  # Ensure the thread is stopped properly
 
 def process():
     print(r"""{}
@@ -95,9 +134,7 @@ def process():
                                                 
             NotPx Auto Paint & Claim by @sgr - v1.0 {}""".format(Colors.BLUE, Colors.END))
     
-    print("Starting Telegram bot...")
-    bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
-    bot_thread.start()
+    start_bot_polling()  # Start polling at the beginning
     
     while True:
         print("\nMain Menu:")
@@ -134,8 +171,7 @@ def process():
             reset_session()
         elif option == "6":
             print("Exiting...")
-            bot.stop_polling()
-            bot_thread.join()
+            stop_bot_polling()  # Stop polling on exit
             break
         else:
             print("[!] Invalid option. Please try again.")
