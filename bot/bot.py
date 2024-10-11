@@ -10,7 +10,17 @@ from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime, timedelta
 
-BOT_TOKEN = "7617710503:AAHinvjvw6d8Zgu1Ozfcy4Guby2obO6Fn5g"
+# Function to prompt and save the bot token
+def set_bot_token():
+    token = input("Enter your Bot Token: ")
+    os.environ["BOT_TOKEN"] = token
+    return token
+
+# Load the bot token from an environment variable or ask for it
+BOT_TOKEN = os.getenv("BOT_TOKEN") or set_bot_token()
+
+if not BOT_TOKEN:
+    raise ValueError("Bot token not found. Set it as an environment variable or input it when prompted.")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 bot_thread = None  # Global reference to bot polling thread for proper stopping
