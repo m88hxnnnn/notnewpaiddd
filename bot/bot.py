@@ -12,6 +12,10 @@ import telebot
 from datetime import datetime
 import random
 
+# Function to clear terminal screen
+def clear_screen():
+    os.system("clear")
+
 # Function to prompt and save the bot token
 def set_bot_token():
     token = input("Enter your Bot Token: ")
@@ -151,6 +155,7 @@ def stop_bot_polling():
         bot_thread.join()  # Ensure the thread is stopped properly
 
 def process():
+    clear_screen()  # Clear the terminal screen
     print(r"""{}
   ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
   ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -164,6 +169,7 @@ def process():
     start_bot_polling()  # Start polling at the beginning
     
     while True:
+        clear_screen()  # Clear terminal before showing menu
         print("\nMain Menu:")
         print("1. Add Account session")
         print("2. Start Mine + Claim")
@@ -195,3 +201,13 @@ def process():
             add_api_credentials()
         elif option == "4":
             reset_api_credentials()
+        elif option == "5":
+            reset_session()
+        elif option == "6":
+            print("Exiting...")
+            stop_bot_polling()  # Stop polling on exit
+            break
+        else:
+            print("[!] Invalid option. Please try again.")
+
+if
