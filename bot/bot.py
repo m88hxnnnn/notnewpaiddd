@@ -11,6 +11,7 @@ from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
 import random
+import time  # Ensure to import time if you're using it
 
 # Function to prompt and save the bot token
 def set_bot_token():
@@ -151,6 +152,7 @@ def stop_bot_polling():
         bot_thread.join()  # Ensure the thread is stopped properly
 
 def process():
+    os.system('clear')  # Clear the console at the start of the script
     print(r"""{}
   ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
   ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -195,3 +197,14 @@ def process():
             add_api_credentials()
         elif option == "4":
             reset_api_credentials()
+        elif option == "5":
+            reset_session()
+        elif option == "6":
+            stop_bot_polling()
+            print("Exiting...")
+            break  # Exit the main loop to stop the script
+        else:
+            print("[!] Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    process()
