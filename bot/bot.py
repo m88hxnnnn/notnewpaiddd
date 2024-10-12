@@ -2,7 +2,6 @@ import os
 import threading
 import asyncio
 import time
-import uuid
 import requests
 import json
 from bot.painter import painters
@@ -24,61 +23,46 @@ def get_bot_instance(bot_token):
     return bot_instances[bot_token]
 
 async def run_mine_claimer(cli, session_name):
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            await mine_claimer(cli, session_name)
-        else:
-            asyncio.run(mine_claimer(cli, session_name))
-    except RuntimeError:
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-        new_loop.run_until_complete(mine_claimer(cli, session_name))
+    await mine_claimer(cli, session_name)
 
 async def run_painters(cli, session_name):
+    await painters(cli, session_name)
+
+def run_async_functions(cli, session_name):
+    # Create a new event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            await painters(cli, session_name)
-        else:
-            asyncio.run(painters(cli, session_name))
-    except RuntimeError:
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-        new_loop.run_until_complete(painters(cli, session_name))
+        # Run both async functions
+        loop.run_until_complete(asyncio.gather(
+            run_mine_claimer(cli, session_name),
+            run_painters(cli, session_name)
+        ))
+    finally:
+        loop.close()
 
 def multithread_starter(bot_token):
     print("Starting the mining and claiming process...")
-    
+
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
-    
+
     dirs = os.listdir("sessions/")
     sessions = list(filter(lambda x: x.endswith(".session"), dirs))
     sessions = list(map(lambda x: x.split(".session")[0], sessions))
-    
+
     if not sessions:
         print("[!] No sessions found.")
         return
-    
+
     for session_name in sessions:
         try:
             with lock:
                 print(f"[+] Loading session: {session_name}")
                 cli = NotPx("sessions/" + session_name)
 
-                def painters_thread():
-                    print(f"[+] Starting painters for session: {session_name}")
-                    asyncio.run(run_painters(cli, session_name))
-                    print(f"[+] Painters finished for session: {session_name}")
-
-                def mine_claimer_thread():
-                    print(f"[+] Starting mine claimer for session: {session_name}")
-                    asyncio.run(run_mine_claimer(cli, session_name))
-                    print(f"[+] Mine claimer finished for session: {session_name}")
-
-                threading.Thread(target=painters_thread).start()
-                threading.Thread(target=mine_claimer_thread).start()
+                # Start threads for painters and mine claimer
+                threading.Thread(target=run_async_functions, args=(cli, session_name)).start()
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
 
@@ -152,7 +136,7 @@ def process():
         ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝ ╚═╝  ╚═══╝
         
                                                 
-            NotPx Auto Paint & Claim by @helpppeeerrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
+            NotPx Auto Paint & Claim by @helpppeeerrrrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
     
     print("Starting Telegram bot...")
     bot_token = input("Enter your bot token: ")
