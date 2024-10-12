@@ -100,7 +100,7 @@ def process():
         ██║ ╚═╝ ██║ ╚██████╔╝ ██║  ██║ ███████║ ██║ ██║ ╚████║
         ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝ ╚═╝  ╚═══╝
                                                 
-            NotPx Auto Paint & Claim by @sgr - v1.0 {}""".format(Colors.BLUE, Colors.END))
+            NotPx Auto Paint & Claim by @helpppeeerrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
     
     print("Starting Telegram bot...")
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
