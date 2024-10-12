@@ -13,12 +13,15 @@ from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
 
-# Ask for bot token at runtime
-BOT_TOKEN = input("Enter your bot token: ")
+# Global variable to store the bot instance
+bot_instances = {}
 
-bot = telebot.TeleBot(BOT_TOKEN)
+def get_bot_instance(bot_token):
+    if bot_token not in bot_instances:
+        bot_instances[bot_token] = telebot.TeleBot(bot_token)
+    return bot_instances[bot_token]
 
-def multithread_starter():
+def multithread_starter(bot_token):
     print("License check removed. Starting the script...")
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
@@ -103,6 +106,8 @@ def process():
             NotPx Auto Paint & Claim by @helpppeeerrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
     
     print("Starting Telegram bot...")
+    bot_token = input("Enter your bot token: ")
+    bot = get_bot_instance(bot_token)  # Get the bot instance with the provided token
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
     
@@ -132,7 +137,7 @@ def process():
             else:
                 print("[x] Session {} {}already exist{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
-            multithread_starter()
+            multithread_starter(bot_token)  # Pass the bot token here
         elif option == "3":
             add_api_credentials()
         elif option == "4":
