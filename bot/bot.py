@@ -87,6 +87,12 @@ def add_api_credentials():
 def add_proxy():
     session_name = input("Enter the session name for proxy: ")
     proxy = input("Enter proxy (format: http://username:password@ip:port): ")
+
+    # Validate the proxy format
+    if not proxy.startswith("http://") or not proxy.count(":") == 3:
+        print("[!] Invalid proxy format. Please use http://username:password@ip:port format.")
+        return
+
     proxies[session_name] = proxy
     print(f"[+] Proxy {proxy} added for {session_name}.")
 
@@ -194,7 +200,7 @@ def process():
         elif option == "5":
             reset_session()
         elif option == "6":
-            add_proxy()
+            add_proxy()  # Calls the function to add a proxy
         elif option == "7":
             reset_proxy()
         elif option == "8":
