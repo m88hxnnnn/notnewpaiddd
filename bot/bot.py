@@ -11,9 +11,7 @@ from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
 import random
-import time
 import platform
-import pytz
 
 # Function to clear the console
 def clear_console():
@@ -126,6 +124,9 @@ async def run_mine_claimer(cli, session_name, logger):
     logger.info("Started mine claimer process")
     await mine_claimer(cli, session_name)
 
+async def start_all_tasks(cli, session_name, logger):
+    await asyncio.gather(run_painters(cli, session_name, logger), run_mine_claimer(cli, session_name, logger))
+
 def multithread_starter():
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
@@ -139,8 +140,7 @@ def multithread_starter():
             logger = setup_logger(session_name)  # Create a logger for each session
 
             # Start painters and mine_claimers asynchronously
-            asyncio.run(run_painters(cli, session_name, logger))
-            asyncio.run(run_mine_claimer(cli, session_name, logger))
+            asyncio.run(start_all_tasks(cli, session_name, logger))
             logger.info("Started both threads for session: {}".format(session_name))
         except Exception as e:
             logger.error("Error on load session {}: {}".format(session_name, e))
@@ -211,8 +211,6 @@ def process():
         elif option == "6":
             stop_bot_polling()  # Stop bot polling before exiting
             break
-        else:
-            print("[!] Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     process()
