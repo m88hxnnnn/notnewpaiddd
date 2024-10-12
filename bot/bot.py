@@ -19,7 +19,8 @@ lock = threading.Lock()
 
 def get_bot_instance(token):
     global bot_token, token_expiration
-    if bot_token is None or datetime.now() >= token_expiration:
+    # Check if token_expiration is None before comparing
+    if bot_token is None or token_expiration is None or datetime.now() >= token_expiration:
         bot_token = token
         token_expiration = datetime.now() + timedelta(hours=2)
         print(f"[+] Your bot token is valid for 2 hours from now.")
