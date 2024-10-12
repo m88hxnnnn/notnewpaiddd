@@ -124,9 +124,6 @@ async def run_mine_claimer(cli, session_name, logger):
     logger.info("Started mine claimer process")
     await mine_claimer(cli, session_name)
 
-async def start_all_tasks(cli, session_name, logger):
-    await asyncio.gather(run_painters(cli, session_name, logger), run_mine_claimer(cli, session_name, logger))
-
 def multithread_starter():
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
@@ -135,12 +132,13 @@ def multithread_starter():
     sessions = list(map(lambda x: x.split(".session")[0], sessions))
     
     for session_name in sessions:
+        logger = setup_logger(session_name)  # Create a logger for each session
         try:
             cli = NotPx("sessions/" + session_name)
-            logger = setup_logger(session_name)  # Create a logger for each session
 
             # Start painters and mine_claimers asynchronously
-            asyncio.run(start_all_tasks(cli, session_name, logger))
+            asyncio.run(run_painters(cli, session_name, logger))
+            asyncio.run(run_mine_claimer(cli, session_name, logger))
             logger.info("Started both threads for session: {}".format(session_name))
         except Exception as e:
             logger.error("Error on load session {}: {}".format(session_name, e))
@@ -209,8 +207,11 @@ def process():
         elif option == "5":
             reset_session()
         elif option == "6":
-            stop_bot_polling()  # Stop bot polling before exiting
+            stop_bot_polling()  # Stop polling when exiting
+            print("[+] Exiting...")
             break
+        else:
+            print("[!] Invalid option. Please try again.")
 
 if __name__ == "__main__":
     process()
