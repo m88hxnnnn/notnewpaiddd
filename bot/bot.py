@@ -96,23 +96,21 @@ def reset_api_credentials():
     else:
         print("[!] No env.txt file found. Nothing to reset.")
 
-def reset_session():
-    if not os.path.exists("sessions"):
-        os.mkdir("sessions")
-    sessions = [f for f in os.listdir("sessions/") if f.endswith(".session")]
-    if not sessions:
-        print("[!] No sessions found.")
-        return
-    print("Available sessions:")
-    for i, session in enumerate(sessions, 1):
-        print(f"{i}. {session[:-8]}")
-    choice = input("Enter the number of the session to reset: ")
-    try:
-        session_to_reset = sessions[int(choice) - 1]
-        os.remove(os.path.join("sessions", session_to_reset))
-        print(f"[+] Session {session_to_reset[:-8]} reset successfully.")
-    except (ValueError, IndexError):
-        print("[!] Invalid choice. Please try again.")
+def reset_proxy(session_name):
+    proxy_file = f"sessions/{session_name}_proxy.txt"
+    if os.path.exists(proxy_file):
+        os.remove(proxy_file)
+        print(f"[+] Proxy for session {session_name} reset successfully.")
+    else:
+        print(f"[!] No proxy file found for session {session_name}. Nothing to reset.")
+
+def add_proxy(session_name):
+    proxy_host = input("Enter Proxy Host: ")
+    proxy_port = input("Enter Proxy Port: ")
+    proxy_file = f"sessions/{session_name}_proxy.txt"
+    with open(proxy_file, 'w') as f:
+        f.write(f"{proxy_host}:{proxy_port}")
+    print(f"[+] Proxy {proxy_host}:{proxy_port} saved successfully for session {session_name}.")
 
 def load_api_credentials():
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
@@ -165,8 +163,9 @@ def process():
         print("2. Start Mine + Claim")
         print("3. Add API ID and Hash")
         print("4. Reset API Credentials")
-        print("5. Reset Session")
-        print("6. Exit")
+        print("5. Add Proxy")
+        print("6. Reset Proxy")
+        print("7. Exit")
         
         option = input("Enter your choice: ")
         
@@ -181,15 +180,6 @@ def process():
                     client.disconnect()
                     save_session(name)  # Save session name to file
                     
-                    # Ask for proxy
-                    proxy_choice = input("Do you want to add a proxy for this session? (yes/no): ").strip().lower()
-                    if proxy_choice == "yes":
-                        proxy_host = input("Enter Proxy Host: ")
-                        proxy_port = input("Enter Proxy Port: ")
-                        with open(f"sessions/{name}_proxy.txt", 'w') as f:
-                            f.write(f"{proxy_host}:{proxy_port}")
-                        print(f"[+] Proxy {proxy_host}:{proxy_port} saved successfully.")
-                    
                     print("[+] Session {} {}saved successfully{}.".format(name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
@@ -202,8 +192,18 @@ def process():
         elif option == "4":
             reset_api_credentials()
         elif option == "5":
-            reset_session()
+            session_name = input("Enter the session name to add proxy: ")
+            if os.path.exists(f"sessions/{session_name}.session"):
+                add_proxy(session_name)
+            else:
+                print("[!] Session not found.")
         elif option == "6":
+            session_name = input("Enter the session name to reset proxy: ")
+            if os.path.exists(f"sessions/{session_name}.session"):
+                reset_proxy(session_name)
+            else:
+                print("[!] Session not found.")
+        elif option == "7":
             print("Exiting...")
             bot.stop_polling()
             bot_thread.join()
