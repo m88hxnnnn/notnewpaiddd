@@ -21,6 +21,30 @@ def get_bot_instance(bot_token):
         bot_instances[bot_token] = telebot.TeleBot(bot_token)
     return bot_instances[bot_token]
 
+async def run_mine_claimer(cli, session_name):
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            await mine_claimer(cli, session_name)
+        else:
+            asyncio.run(mine_claimer(cli, session_name))
+    except RuntimeError:
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        new_loop.run_until_complete(mine_claimer(cli, session_name))
+
+async def run_painters(cli, session_name):
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            await painters(cli, session_name)
+        else:
+            asyncio.run(painters(cli, session_name))
+    except RuntimeError:
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        new_loop.run_until_complete(painters(cli, session_name))
+
 def multithread_starter(bot_token):
     print("Starting the mining and claiming process...")
     
@@ -40,18 +64,18 @@ def multithread_starter(bot_token):
             print(f"[+] Loading session: {session_name}")
             cli = NotPx("sessions/" + session_name)
 
-            def run_painters():
+            def painters_thread():
                 print(f"[+] Starting painters for session: {session_name}")
-                asyncio.run(painters(cli, session_name))
+                asyncio.run(run_painters(cli, session_name))
                 print(f"[+] Painters finished for session: {session_name}")
 
-            def run_mine_claimer():
+            def mine_claimer_thread():
                 print(f"[+] Starting mine claimer for session: {session_name}")
-                asyncio.run(mine_claimer(cli, session_name))
+                asyncio.run(run_mine_claimer(cli, session_name))
                 print(f"[+] Mine claimer finished for session: {session_name}")
 
-            threading.Thread(target=run_painters).start()
-            threading.Thread(target=run_mine_claimer).start()
+            threading.Thread(target=painters_thread).start()
+            threading.Thread(target=mine_claimer_thread).start()
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
 
