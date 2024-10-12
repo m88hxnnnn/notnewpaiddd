@@ -2,6 +2,8 @@ import os
 import threading
 import asyncio
 import time
+import requests
+import json
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
 from bot.utils import night_sleep, Colors
@@ -11,22 +13,20 @@ import telebot
 from datetime import datetime, timedelta
 import sqlite3
 
-# Global variable to store the bot instance and token expiration
+# Global variables
 bot_instances = {}
-token_expiration = None
-bot_token = None
 lock = threading.Lock()
+token_expiration = None  # To store the token expiration time
+valid_bot_token = None  # To store the valid bot token
 
-def get_bot_instance(token):
-    global bot_token, token_expiration
-    # Check if token_expiration is None before comparing
-    if bot_token is None or token_expiration is None or datetime.now() >= token_expiration:
-        bot_token = token
-        token_expiration = datetime.now() + timedelta(hours=2)
-        print(f"[+] Your bot token is valid for 2 hours from now.")
-    if token not in bot_instances:
-        bot_instances[token] = telebot.TeleBot(token)
-    return bot_instances[token]
+# To store proxies
+proxies = {}
+
+def get_bot_instance(bot_token):
+    global valid_bot_token, token_expiration
+    if bot_token not in bot_instances:
+        bot_instances[bot_token] = telebot.TeleBot(bot_token)
+    return bot_instances[bot_token]
 
 async def run_mine_claimer(cli, session_name):
     await mine_claimer(cli, session_name)
@@ -34,7 +34,7 @@ async def run_mine_claimer(cli, session_name):
 async def run_painters(cli, session_name):
     await painters(cli, session_name)
 
-def run_async_functions(cli, session_name):
+def run_async_functions(cli, session_name, proxy):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -45,8 +45,7 @@ def run_async_functions(cli, session_name):
     finally:
         loop.close()
 
-def multithread_starter():
-    global bot_token, token_expiration
+def multithread_starter(bot_token):
     print("Starting the mining and claiming process...")
 
     if not os.path.exists("sessions"):
@@ -63,17 +62,16 @@ def multithread_starter():
     for session_name in sessions:
         try:
             with lock:
-                proxy = load_proxy(session_name)  # Load proxy for session
                 print(f"[+] Loading session: {session_name}")
-                if proxy:
-                    print(f"[+] Using proxy: {proxy} for session {session_name}")
-                else:
-                    print(f"[!] No proxy found for session {session_name}. Running without proxy.")
-                
-                # Initialize NotPx without 'proxy' argument since it caused errors
-                cli = NotPx(f"sessions/{session_name}")
+                cli = NotPx("sessions/" + session_name)
 
-                threading.Thread(target=run_async_functions, args=(cli, session_name)).start()
+                proxy = proxies.get(session_name)
+                if proxy:
+                    print(f"[+] Using proxy: {proxy} for {session_name}")
+                else:
+                    print(f"[!] No proxy found for session {session_name}, running without proxy.")
+
+                threading.Thread(target=run_async_functions, args=(cli, session_name, proxy)).start()
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
 
@@ -86,6 +84,20 @@ def add_api_credentials():
         f.write(f"API_HASH={api_hash}\n")
     print("[+] API credentials saved successfully in env.txt file.")
 
+def add_proxy():
+    session_name = input("Enter the session name for proxy: ")
+    proxy = input("Enter proxy (format: http://username:password@ip:port): ")
+    proxies[session_name] = proxy
+    print(f"[+] Proxy {proxy} added for {session_name}.")
+
+def reset_proxy():
+    session_name = input("Enter the session name to reset proxy: ")
+    if session_name in proxies:
+        del proxies[session_name]
+        print(f"[+] Proxy reset for {session_name}.")
+    else:
+        print(f"[!] No proxy found for {session_name}.")
+
 def reset_api_credentials():
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
     if os.path.exists(env_path):
@@ -93,14 +105,6 @@ def reset_api_credentials():
         print("[+] API credentials reset successfully.")
     else:
         print("[!] No env.txt file found. Nothing to reset.")
-
-def reset_proxy():
-    proxy_file = "proxy_list.txt"
-    if os.path.exists(proxy_file):
-        os.remove(proxy_file)
-        print("[+] Proxy list reset successfully.")
-    else:
-        print("[!] No proxy file found. Nothing to reset.")
 
 def load_api_credentials():
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
@@ -117,26 +121,19 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
-def add_proxy():
-    proxy = input("Enter proxy (format: host:port or username:password@host:port): ")
-    session_name = input("Enter session name to assign this proxy to: ")
-    proxy_file = "proxy_list.txt"
-    with open(proxy_file, "a") as f:
-        f.write(f"{session_name}={proxy}\n")
-    print(f"[+] Proxy {proxy} added to session {session_name}.")
+def save_session(name):
+    with open("sessions/sessions_list.txt", "a") as f:
+        f.write(name + "\n")
 
-def load_proxy(session_name):
-    proxy_file = "proxy_list.txt"
-    if os.path.exists(proxy_file):
-        with open(proxy_file, "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                if line.startswith(f"{session_name}="):
-                    return line.split('=')[1].strip()
-    return None
+def load_sessions():
+    if not os.path.exists("sessions/sessions_list.txt"):
+        return []
+    with open("sessions/sessions_list.txt", "r") as f:
+        return [line.strip() for line in f.readlines()]
 
 def process():
-    global bot_token
+    global token_expiration, valid_bot_token
+
     print(r"""  
         ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
         ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -147,14 +144,19 @@ def process():
                                                 
         NotPx Auto Paint & Claim by @helpppeeerrrrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
     
-    print("Starting Telegram bot...")
-    bot_token = input("Enter your bot token: ")
-    bot = get_bot_instance(bot_token)
+    if valid_bot_token is None or datetime.now() >= token_expiration:
+        bot_token = input("Enter your bot token: ")
+        valid_bot_token = bot_token
+        token_expiration = datetime.now() + timedelta(hours=2)
+        print(f"[+] Your bot token is valid for 2 hours from now.")
+    else:
+        print(f"[+] Using cached bot token. It is valid until {token_expiration}.")
     
-    # Start bot polling in a separate thread
+    bot = get_bot_instance(valid_bot_token)  # Get the bot instance with the valid token
+    
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
-
+    
     while True:
         print("\nMain Menu:")
         print("1. Add Account session")
@@ -165,9 +167,9 @@ def process():
         print("6. Add Proxy")
         print("7. Reset Proxy")
         print("8. Exit")
-
+        
         option = input("Enter your choice: ")
-
+        
         if option == "1":
             name = input("\nEnter Session name: ")
             if not os.path.exists("sessions"):
@@ -177,13 +179,14 @@ def process():
                 if api_id and api_hash:
                     client = TelegramClient("sessions/" + name, api_id, api_hash).start()
                     client.disconnect()
-                    print(f"[+] Session {name} saved successfully.")
+                    save_session(name)
+                    print("[+] Session {} {}saved successfully{}.".format(name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print(f"[x] Session {name} already exists.")
+                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
-            multithread_starter()
+            multithread_starter(valid_bot_token)  # Pass the valid bot token
         elif option == "3":
             add_api_credentials()
         elif option == "4":
@@ -205,4 +208,5 @@ def process():
 if __name__ == "__main__":
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
+    load_sessions()  # Load existing sessions
     process()
