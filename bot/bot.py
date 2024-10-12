@@ -12,6 +12,7 @@ import telebot
 from datetime import datetime
 import random
 import platform
+import time
 
 # Function to clear the console
 def clear_console():
@@ -136,10 +137,23 @@ def multithread_starter():
         try:
             cli = NotPx("sessions/" + session_name)
 
-            # Start painters and mine_claimers asynchronously
-            asyncio.run(run_painters(cli, session_name, logger))
-            asyncio.run(run_mine_claimer(cli, session_name, logger))
-            logger.info("Started both threads for session: {}".format(session_name))
+            # Retry if the database is locked
+            for attempt in range(5):
+                try:
+                    # Start painters and mine_claimers asynchronously
+                    asyncio.run(run_painters(cli, session_name, logger))
+                    asyncio.run(run_mine_claimer(cli, session_name, logger))
+                    logger.info("Started both threads for session: {}".format(session_name))
+                    break  # Exit loop on success
+                except Exception as e:
+                    if "database is locked" in str(e):
+                        logger.error(f"Database locked. Retrying... Attempt {attempt + 1}/5")
+                        time.sleep(1)  # Wait before retrying
+                    else:
+                        logger.error("Error on load session {}: {}".format(session_name, e))
+                        print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
+                        break  # Exit loop on non-lock errors
+
         except Exception as e:
             logger.error("Error on load session {}: {}".format(session_name, e))
             print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
@@ -196,20 +210,24 @@ def process():
                     print("[+] Session {} {}saved successfully{}.".format(unique_name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
-            else:
-                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
+        
         elif option == "2":
             multithread_starter()
+        
         elif option == "3":
             add_api_credentials()
+        
         elif option == "4":
             reset_api_credentials()
+        
         elif option == "5":
             reset_session()
+        
         elif option == "6":
-            stop_bot_polling()  # Stop polling when exiting
-            print("[+] Exiting...")
+            stop_bot_polling()
+            print("Exiting...")
             break
+        
         else:
             print("[!] Invalid option. Please try again.")
 
