@@ -39,6 +39,7 @@ def multithread_starter(bot_token):
             def run_mine_claimer():
                 asyncio.run(mine_claimer(cli, session_name))
 
+            # Ensure threads run with locking mechanism if required
             threading.Thread(target=run_painters).start()
             threading.Thread(target=run_mine_claimer).start()
         except Exception as e:
@@ -108,6 +109,8 @@ def process():
     print("Starting Telegram bot...")
     bot_token = input("Enter your bot token: ")
     bot = get_bot_instance(bot_token)  # Get the bot instance with the provided token
+    
+    # Start bot polling in a separate thread
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
     
