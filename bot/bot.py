@@ -119,11 +119,17 @@ def load_api_credentials():
 
 async def run_painters(cli, session_name, logger):
     logger.info("Started painters process")
-    await painters(cli, session_name)
+    try:
+        await painters(cli, session_name)
+    finally:
+        await cli.disconnect()  # Ensure disconnecting the client
 
 async def run_mine_claimer(cli, session_name, logger):
     logger.info("Started mine claimer process")
-    await mine_claimer(cli, session_name)
+    try:
+        await mine_claimer(cli, session_name)
+    finally:
+        await cli.disconnect()  # Ensure disconnecting the client
 
 def multithread_starter():
     if not os.path.exists("sessions"):
@@ -141,8 +147,10 @@ def multithread_starter():
             for attempt in range(5):
                 try:
                     # Start painters and mine_claimers asynchronously
-                    asyncio.run(run_painters(cli, session_name, logger))
-                    asyncio.run(run_mine_claimer(cli, session_name, logger))
+                    await asyncio.gather(
+                        run_painters(cli, session_name, logger),
+                        run_mine_claimer(cli, session_name, logger)
+                    )
                     logger.info("Started both threads for session: {}".format(session_name))
                     break  # Exit loop on success
                 except Exception as e:
@@ -205,29 +213,36 @@ def process():
             if not any(unique_name in i for i in os.listdir("sessions/")):
                 api_id, api_hash = load_api_credentials()
                 if api_id and api_hash:
-                    client = TelegramClient("sessions/" + unique_name, api_id, api_hash).start()
-                    client.disconnect()
-                    print("[+] Session {} {}saved successfully{}.".format(unique_name, Colors.GREEN, Colors.END))
+                    client = TelegramClient(f"sessions/{unique_name}", api_id, api_hash)
+
+                    async def create_session():
+                        await client.start()
+                        print(f"[+] Session {unique_name} created successfully.")
+                        await client.disconnect()
+
+                    asyncio.run(create_session())
                 else:
                     print("[!] API credentials not found. Please add them first.")
-        
+            else:
+                print("[!] Session name already exists. Please choose a different name.")
+
         elif option == "2":
-            multithread_starter()
-        
+            multithread_starter()  # Start mining and claiming for all sessions
+
         elif option == "3":
-            add_api_credentials()
-        
+            add_api_credentials()  # Add API ID and Hash
+
         elif option == "4":
-            reset_api_credentials()
-        
+            reset_api_credentials()  # Reset API credentials
+
         elif option == "5":
-            reset_session()
-        
+            reset_session()  # Reset a specific session
+
         elif option == "6":
-            stop_bot_polling()
-            print("Exiting...")
+            stop_bot_polling()  # Stop the bot polling before exit
+            print("[+] Exiting the program.")
             break
-        
+
         else:
             print("[!] Invalid option. Please try again.")
 
