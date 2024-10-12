@@ -17,6 +17,16 @@ lock = threading.Lock()
 token_expiration = None  # To store the token expiration time
 valid_bot_token = None  # To store the valid bot token
 
+# Colors class with additional colors
+class Colors:
+    END = "\033[0m"
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    CYAN = "\033[96m"
+    MAGENTA = "\033[95m"  # Added MAGENTA color
+
 def get_bot_instance(bot_token):
     global valid_bot_token, token_expiration
     if bot_token not in bot_instances:
@@ -168,7 +178,7 @@ def process():
                 
         elif option == "2":
             multithread_starter(valid_bot_token)
-            print(f"{Colors.YELLOW}✨ Back to Main Menu... ✨{Colors.END}")  # Added prompt to indicate return to menu after claiming
+            print(f"{Colors.YELLOW}✨ Back to Main Menu... ✨{Colors.END}")  # Indicates returning to menu after claiming
             
         elif option == "3":
             show_sessions()
