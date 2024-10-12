@@ -12,9 +12,11 @@ from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
+from threading import Lock
 
-# Global variable to store the bot instance
+# Global variable to store the bot instance and a lock for session access
 bot_instances = {}
+session_lock = Lock()
 
 def get_bot_instance(bot_token):
     if bot_token not in bot_instances:
@@ -34,10 +36,12 @@ def multithread_starter(bot_token):
             cli = NotPx("sessions/" + session_name)
 
             def run_painters():
-                asyncio.run(painters(cli, session_name))
+                with session_lock:  # Locking to prevent simultaneous access
+                    asyncio.run(painters(cli, session_name))
 
             def run_mine_claimer():
-                asyncio.run(mine_claimer(cli, session_name))
+                with session_lock:  # Locking to prevent simultaneous access
+                    asyncio.run(mine_claimer(cli, session_name))
 
             # Ensure threads run with locking mechanism if required
             threading.Thread(target=run_painters).start()
