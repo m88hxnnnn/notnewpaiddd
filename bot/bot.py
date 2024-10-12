@@ -180,20 +180,6 @@ def stop_bot_polling():
         bot.stop_polling()
         bot_thread.join()  # Ensure the thread is stopped properly
 
-async def create_session(client, unique_name):
-    for attempt in range(5):  # Retry up to 5 times
-        try:
-            await client.start()
-            print(f"[+] Session '{unique_name}' added successfully!")
-            return  # Exit the function on success
-        except Exception as e:
-            if "database is locked" in str(e) and attempt < 4:
-                print(f"[!] Database locked, retrying... ({attempt + 1}/5)")
-                await asyncio.sleep(2)  # Wait before retrying
-            else:
-                print(f"[!] Failed to add session: {e}")
-                return  # Exit on other errors
-
 def process():
     clear_console()  # Clear console at the beginning
     print(r"""{}
@@ -212,29 +198,44 @@ def process():
         print("\nMain Menu:")
         print("1. Add Account session")
         print("2. Start Mine + Claim")
-        print("3. Exit")
-
-        option = input("Choose an option: ")
-
+        print("3. Add API ID and Hash")
+        print("4. Reset API Credentials")
+        print("5. Reset Session")
+        print("6. Exit")
+        
+        option = input("Enter your choice: ")
+        
         if option == "1":
-            api_id, api_hash = load_api_credentials()
-            if not api_id or not api_hash:
-                print("[!] API credentials not found. Please add them first.")
-                continue
-
-            unique_name = generate_unique_session_name("Saniiyakhann")
-            client = TelegramClient(f"sessions/{unique_name}", api_id, api_hash)
-
-            # Start the session creation coroutine
-            asyncio.run(create_session(client, unique_name))
+            name = input("\nEnter Session name: ")
+            unique_name = generate_unique_session_name(name)
+            if not os.path.exists("sessions"):
+                os.mkdir("sessions")
+            if not any(unique_name in i for i in os.listdir("sessions/")):
+                api_id, api_hash = load_api_credentials()
+                if api_id and api_hash:
+                    client = TelegramClient(f"sessions/{unique_name}", api_id, api_hash)
+                    client.start()
+                    print(f"[+] Session '{unique_name}' created successfully.")
+                else:
+                    print("[!] API credentials are missing. Please add them first.")
+            else:
+                print(f"[!] Session '{unique_name}' already exists. Please choose a different name.")
 
         elif option == "2":
-            print("[+] Starting the multi-threaded mining and claiming...")
             asyncio.run(multithread_starter())
 
         elif option == "3":
-            stop_bot_polling()  # Ensure the bot polling is stopped before exiting
-            print("Exiting...")
+            add_api_credentials()
+
+        elif option == "4":
+            reset_api_credentials()
+
+        elif option == "5":
+            reset_session()
+
+        elif option == "6":
+            stop_bot_polling()  # Stop the bot before exiting
+            print("[+] Exiting program.")
             break
 
         else:
