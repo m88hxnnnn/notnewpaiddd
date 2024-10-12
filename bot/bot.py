@@ -131,7 +131,7 @@ async def run_mine_claimer(cli, session_name, logger):
     finally:
         await cli.disconnect()  # Ensure disconnecting the client
 
-def multithread_starter():
+async def multithread_starter():
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
     dirs = os.listdir("sessions/")
@@ -216,35 +216,35 @@ def process():
                     client = TelegramClient(f"sessions/{unique_name}", api_id, api_hash)
 
                     async def create_session():
-                        await client.start()
-                        print(f"[+] Session {unique_name} created successfully.")
-                        await client.disconnect()
-
-                    asyncio.run(create_session())
+                        try:
+                        client.start()
+                        print(f"[+] Session '{unique_name}' added successfully!")
+                    except Exception as e:
+                        print(f"[!] Failed to add session: {e}")
                 else:
-                    print("[!] API credentials not found. Please add them first.")
+                    print("[!] Please set your API ID and Hash first.")
             else:
-                print("[!] Session name already exists. Please choose a different name.")
-
+                print("[!] Session with this name already exists.")
+        
         elif option == "2":
-            multithread_starter()  # Start mining and claiming for all sessions
-
+            asyncio.run(multithread_starter())
+        
         elif option == "3":
-            add_api_credentials()  # Add API ID and Hash
-
+            add_api_credentials()
+        
         elif option == "4":
-            reset_api_credentials()  # Reset API credentials
-
+            reset_api_credentials()
+        
         elif option == "5":
-            reset_session()  # Reset a specific session
-
+            reset_session()
+        
         elif option == "6":
-            stop_bot_polling()  # Stop the bot polling before exit
-            print("[+] Exiting the program.")
+            stop_bot_polling()  # Stop bot polling before exiting
+            print("Exiting program...")
             break
-
+        
         else:
-            print("[!] Invalid option. Please try again.")
+            print("[!] Invalid option, please try again.")
 
 if __name__ == "__main__":
     process()
