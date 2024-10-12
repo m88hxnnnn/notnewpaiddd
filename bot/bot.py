@@ -10,18 +10,21 @@ from bot.utils import night_sleep, Colors
 from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
-from datetime import datetime
-import sqlite3
+from datetime import datetime, timedelta
 
-# Global variable to store the bot instance and proxy
+# Global variable to store the bot instance, token, and proxy
 bot_instances = {}
 proxy_dict = {}
 lock = threading.Lock()
 
-def get_bot_instance(bot_token):
-    if bot_token not in bot_instances:
-        bot_instances[bot_token] = telebot.TeleBot(bot_token)
-    return bot_instances[bot_token]
+# Store the token and the expiration time
+bot_token = None
+token_expiration = None
+
+def get_bot_instance(token):
+    if token not in bot_instances:
+        bot_instances[token] = telebot.TeleBot(token)
+    return bot_instances[token]
 
 async def run_mine_claimer(cli, session_name):
     await mine_claimer(cli, session_name)
@@ -40,7 +43,8 @@ def run_async_functions(cli, session_name):
     finally:
         loop.close()
 
-def multithread_starter(bot_token):
+def multithread_starter():
+    global bot_token, token_expiration
     print("Starting the mining and claiming process...")
 
     if not os.path.exists("sessions"):
@@ -140,6 +144,7 @@ def load_sessions():
         return [line.strip() for line in f.readlines()]
 
 def process():
+    global bot_token, token_expiration
     print(r"""  
         ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
         ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -148,15 +153,18 @@ def process():
         ██║ ╚═╝ ██║ ╚██████╔╝ ██║  ██║ ███████║ ██║ ██║ ╚████║
         ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝ ╚═╝  ╚═══╝
                                                 
-            NotPx Auto Paint & Claim by @helpppeeerrrrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
-    
-    print("Starting Telegram bot...")
-    bot_token = input("Enter your bot token: ")
+            NotPx Auto Paint & Claim by @helpppeeerrrrrr - v1.0""")
+
+    # Check if the bot token is still valid
+    if bot_token is None or (token_expiration is not None and datetime.now() >= token_expiration):
+        bot_token = input("Enter your bot token: ")
+        token_expiration = datetime.now() + timedelta(hours=2)  # Set expiration time to 2 hours
+        print(f"[+] Your bot token is valid for 2 hours from now.")
+
     bot = get_bot_instance(bot_token)
-    
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
-    
+
     while True:
         print("\nMain Menu:")
         print("1. Add Account session")
@@ -167,9 +175,9 @@ def process():
         print("6. Add Proxy")
         print("7. Reset Proxy")
         print("8. Exit")
-        
+
         option = input("Enter your choice: ")
-        
+
         if option == "1":
             name = input("\nEnter Session name: ")
             if not os.path.exists("sessions"):
@@ -180,13 +188,13 @@ def process():
                     client = TelegramClient("sessions/" + name, api_id, api_hash).start()
                     client.disconnect()
                     save_session(name)
-                    print("[+] Session {} {}saved successfully{}.".format(name, Colors.GREEN, Colors.END))
+                    print("[+] Session {} saved successfully.".format(name))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
+                print("[x] Session {} already exists.".format(name))
         elif option == "2":
-            multithread_starter(bot_token)
+            multithread_starter()
         elif option == "3":
             add_api_credentials()
         elif option == "4":
@@ -208,7 +216,4 @@ def process():
             print("[!] Invalid option. Please try again.")
 
 if __name__ == "__main__":
-    if not os.path.exists("sessions"):
-        os.mkdir("sessions")
-    load_sessions()
     process()
