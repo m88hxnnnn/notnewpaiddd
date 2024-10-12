@@ -12,9 +12,11 @@ from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime
+import sqlite3
 
 # Global variable to store the bot instance
 bot_instances = {}
+lock = threading.Lock()
 
 def get_bot_instance(bot_token):
     if bot_token not in bot_instances:
@@ -61,21 +63,22 @@ def multithread_starter(bot_token):
     
     for session_name in sessions:
         try:
-            print(f"[+] Loading session: {session_name}")
-            cli = NotPx("sessions/" + session_name)
+            with lock:
+                print(f"[+] Loading session: {session_name}")
+                cli = NotPx("sessions/" + session_name)
 
-            def painters_thread():
-                print(f"[+] Starting painters for session: {session_name}")
-                asyncio.run(run_painters(cli, session_name))
-                print(f"[+] Painters finished for session: {session_name}")
+                def painters_thread():
+                    print(f"[+] Starting painters for session: {session_name}")
+                    asyncio.run(run_painters(cli, session_name))
+                    print(f"[+] Painters finished for session: {session_name}")
 
-            def mine_claimer_thread():
-                print(f"[+] Starting mine claimer for session: {session_name}")
-                asyncio.run(run_mine_claimer(cli, session_name))
-                print(f"[+] Mine claimer finished for session: {session_name}")
+                def mine_claimer_thread():
+                    print(f"[+] Starting mine claimer for session: {session_name}")
+                    asyncio.run(run_mine_claimer(cli, session_name))
+                    print(f"[+] Mine claimer finished for session: {session_name}")
 
-            threading.Thread(target=painters_thread).start()
-            threading.Thread(target=mine_claimer_thread).start()
+                threading.Thread(target=painters_thread).start()
+                threading.Thread(target=mine_claimer_thread).start()
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
 
