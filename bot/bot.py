@@ -85,14 +85,10 @@ def multithread_starter(bot_token):
         except Exception as e:
             print(f"{Colors.RED}[!] Error on load session \"{session_name}\", error: {e}{Colors.END}")
 
-def add_api_credentials():
-    api_id = input(f"{Colors.CYAN}Enter API ID: {Colors.END}")
-    api_hash = input(f"{Colors.CYAN}Enter API Hash: {Colors.END}")
-    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
-    with open(env_path, "w") as f:
-        f.write(f"API_ID={api_id}\n")
-        f.write(f"API_HASH={api_hash}\n")
-    print(f"{Colors.GREEN}[+] API credentials saved successfully in env.txt file.{Colors.END}")
+def create_proxy_folder():
+    if not os.path.exists("proxies"):
+        os.makedirs("proxies")
+        print(f"{Colors.GREEN}[+] Proxy folder created.{Colors.END}")
 
 def add_proxy():
     session_name = input(f"{Colors.CYAN}Enter the session name for proxy: {Colors.END}")
@@ -103,16 +99,43 @@ def add_proxy():
         print(f"{Colors.RED}[!] Invalid proxy format. Please use http://username:password@ip:port format.{Colors.END}")
         return
 
-    proxies[session_name] = proxy
+    # Save the proxy to a file
+    with open(f"proxies/{session_name}_proxy.txt", "w") as f:
+        f.write(proxy)
+    
     print(f"{Colors.GREEN}[+] Proxy {proxy} added for {session_name}.{Colors.END}")
+
+def load_proxies():
+    proxies.clear()  # Clear existing proxies to avoid duplicates
+    create_proxy_folder()  # Ensure the proxy folder exists
+    if os.path.exists("proxies"):
+        for filename in os.listdir("proxies"):
+            if filename.endswith("_proxy.txt"):
+                session_name = filename.split("_proxy.txt")[0]
+                with open(f"proxies/{filename}", "r") as f:
+                    proxy = f.read().strip()
+                    proxies[session_name] = proxy
+                    print(f"{Colors.GREEN}[+] Loaded proxy {proxy} for {session_name}.{Colors.END}")
+    else:
+        print(f"{Colors.YELLOW}[!] No proxy files found.{Colors.END}")
 
 def reset_proxy():
     session_name = input(f"{Colors.CYAN}Enter the session name to reset proxy: {Colors.END}")
-    if session_name in proxies:
-        del proxies[session_name]
+    proxy_file = f"proxies/{session_name}_proxy.txt"
+    if os.path.exists(proxy_file):
+        os.remove(proxy_file)
         print(f"{Colors.GREEN}[+] Proxy reset for {session_name}.{Colors.END}")
     else:
         print(f"{Colors.RED}[!] No proxy found for {session_name}.{Colors.END}")
+
+def add_api_credentials():
+    api_id = input(f"{Colors.CYAN}Enter API ID: {Colors.END}")
+    api_hash = input(f"{Colors.CYAN}Enter API Hash: {Colors.END}")
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
+    with open(env_path, "w") as f:
+        f.write(f"API_ID={api_id}\n")
+        f.write(f"API_HASH={api_hash}\n")
+    print(f"{Colors.GREEN}[+] API credentials saved successfully in env.txt file.{Colors.END}")
 
 def reset_api_credentials():
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
@@ -161,6 +184,9 @@ def process():
 
     # Clear terminal screen before starting
     os.system('cls' if os.name == 'nt' else 'clear')
+
+    # Load proxies on startup
+    load_proxies()
 
     print(r"""  
         {red}███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
