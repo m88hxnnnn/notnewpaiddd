@@ -105,6 +105,16 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
+def save_session(name):
+    with open("sessions/sessions_list.txt", "a") as f:
+        f.write(name + "\n")
+
+def load_sessions():
+    if not os.path.exists("sessions/sessions_list.txt"):
+        return []
+    with open("sessions/sessions_list.txt", "r") as f:
+        return [line.strip() for line in f.readlines()]
+
 def process():
     print(r"""{}
         ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
@@ -144,11 +154,12 @@ def process():
                 if api_id and api_hash:
                     client = TelegramClient("sessions/" + name, api_id, api_hash).start()
                     client.disconnect()
-                    print("[+] Session {} {}saved success{}.".format(name, Colors.GREEN, Colors.END))
+                    save_session(name)  # Save session name to file
+                    print("[+] Session {} {}saved successfully{}.".format(name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[x] Session {} {}already exist{}.".format(name, Colors.RED, Colors.END))
+                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
             multithread_starter(bot_token)  # Pass the bot token here
         elif option == "3":
@@ -168,4 +179,5 @@ def process():
 if __name__ == "__main__":
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
+    load_sessions()  # Load existing sessions
     process()
