@@ -166,6 +166,23 @@ async def multithread_starter():
             logger.error("Error on load session {}: {}".format(session_name, e))
             print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
 
+async def add_account_session(api_id, api_hash):
+    base_name = input("Enter base name for the session: ")
+    unique_session_name = generate_unique_session_name(base_name)
+    print(f"[+] Generated session name: {unique_session_name}")
+    
+    # Create a new Telegram client session
+    client = TelegramClient(f"sessions/{unique_session_name}", api_id, api_hash)
+
+    try:
+        # Start the client and authorize
+        await client.start()
+        print(f"[+] Successfully created session: {unique_session_name}")
+        # Save the session
+        await client.disconnect()
+    except Exception as e:
+        print(f"[!] Failed to create session: {e}")
+
 def start_bot_polling():
     global bot_thread
     if not bot_thread or not bot_thread.is_alive():
@@ -201,32 +218,22 @@ def process():
         print("3. Reset API credentials")
         print("4. Reset session")
         print("5. Exit")
-
-        choice = input("Enter your choice: ")
-
+        
+        choice = input("Choose an option: ")
+        
         if choice == "1":
-            base_name = input("Enter base name for the session: ")
-            unique_session_name = generate_unique_session_name(base_name)
-            print(f"[+] Generated session name: {unique_session_name}")
             api_id, api_hash = load_api_credentials()
             if api_id and api_hash:
-                # Create a new Telegram client session
-                client = TelegramClient(f"sessions/{unique_session_name}", api_id, api_hash)
-
-                try:
-                    # Start the client and authorize
-                    asyncio.run(client.start())
-                    print(f"[+] Successfully created session: {unique_session_name}")
-                    # Save the session
-                    await client.disconnect()
-                except Exception as e:
-                    print(f"[!] Failed to create session: {e}")
+                asyncio.run(add_account_session(api_id, api_hash))
             else:
-                print("[!] API credentials not found. Please add them first.")
+                print("[!] API credentials not found. Please set them first.")
 
         elif choice == "2":
-            print("[+] Starting mining and claiming process...")
-            asyncio.run(multithread_starter())
+            api_id, api_hash = load_api_credentials()
+            if api_id and api_hash:
+                asyncio.run(multithread_starter())
+            else:
+                print("[!] API credentials not found. Please set them first.")
 
         elif choice == "3":
             reset_api_credentials()
@@ -235,12 +242,12 @@ def process():
             reset_session()
 
         elif choice == "5":
-            stop_bot_polling()  # Stop polling before exiting
-            print("[+] Exiting program.")
+            stop_bot_polling()
+            print("Exiting the program...")
             break
 
         else:
-            print("[!] Invalid choice. Please try again.")
+            print("[!] Invalid choice. Please select a valid option.")
 
 if __name__ == "__main__":
     process()
