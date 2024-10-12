@@ -70,7 +70,8 @@ def multithread_starter(bot_token):
                 print(f"\n{Colors.CYAN}[+] Loading session: {session_name}{Colors.END}")
                 cli = NotPx("sessions/" + session_name)
 
-                print(f"{Colors.YELLOW}⚡ Running without proxy for {session_name}.{Colors.END}")
+                # Proxy reference removed
+                print(f"{Colors.YELLOW}⚡ Running session for {session_name}.{Colors.END}")
 
                 threading.Thread(target=run_async_functions, args=(cli, session_name)).start()
         except Exception as e:
