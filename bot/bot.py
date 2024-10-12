@@ -137,6 +137,15 @@ def load_sessions():
     with open("sessions/sessions_list.txt", "r") as f:
         return [line.strip() for line in f.readlines()]
 
+def show_sessions():
+    sessions = load_sessions()
+    if sessions:
+        print("[+] Active Sessions:")
+        for session in sessions:
+            print(f"  - {session}")
+    else:
+        print("[!] No active sessions found.")
+
 def process():
     global token_expiration, valid_bot_token
 
@@ -172,7 +181,8 @@ def process():
         print("5. Reset Session")
         print("6. Add Proxy")
         print("7. Reset Proxy")
-        print("8. Exit")
+        print("8. Show Active Sessions")  # New option for showing sessions
+        print("9. Exit")
         
         option = input("Enter your choice: ")
         
@@ -204,6 +214,8 @@ def process():
         elif option == "7":
             reset_proxy()
         elif option == "8":
+            show_sessions()  # Call the function to show active sessions
+        elif option == "9":
             print("Exiting...")
             bot.stop_polling()
             bot_thread.join()
