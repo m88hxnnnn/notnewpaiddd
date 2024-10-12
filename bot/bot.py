@@ -2,8 +2,6 @@ import os
 import threading
 import asyncio
 import time
-import requests
-import json
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
 from bot.utils import night_sleep, Colors
@@ -11,17 +9,20 @@ from bot.notpx import NotPx
 from telethon.sync import TelegramClient
 import telebot
 from datetime import datetime, timedelta
+import sqlite3
 
-# Global variable to store the bot instance, token, and proxy
+# Global variable to store the bot instance and token expiration
 bot_instances = {}
-proxy_dict = {}
+token_expiration = None
+bot_token = None
 lock = threading.Lock()
 
-# Store the token and the expiration time
-bot_token = None
-token_expiration = None
-
 def get_bot_instance(token):
+    global bot_token, token_expiration
+    if bot_token is None or datetime.now() >= token_expiration:
+        bot_token = token
+        token_expiration = datetime.now() + timedelta(hours=2)
+        print(f"[+] Your bot token is valid for 2 hours from now.")
     if token not in bot_instances:
         bot_instances[token] = telebot.TeleBot(token)
     return bot_instances[token]
@@ -61,26 +62,19 @@ def multithread_starter():
     for session_name in sessions:
         try:
             with lock:
+                proxy = load_proxy(session_name)  # Load proxy for session
                 print(f"[+] Loading session: {session_name}")
-                proxy = proxy_dict.get(session_name)
-                cli = NotPx("sessions/" + session_name, proxy=proxy)
+                if proxy:
+                    print(f"[+] Using proxy: {proxy} for session {session_name}")
+                else:
+                    print(f"[!] No proxy found for session {session_name}. Running without proxy.")
+                
+                # Initialize NotPx without 'proxy' argument since it caused errors
+                cli = NotPx(f"sessions/{session_name}")
 
-                # Start threads for painters and mine claimer
                 threading.Thread(target=run_async_functions, args=(cli, session_name)).start()
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
-
-def add_proxy(session_name):
-    proxy = input(f"Enter proxy for session {session_name} (format: http://user:pass@host:port): ")
-    proxy_dict[session_name] = proxy
-    print(f"[+] Proxy added for session {session_name}.")
-
-def reset_proxy(session_name):
-    if session_name in proxy_dict:
-        del proxy_dict[session_name]
-        print(f"[+] Proxy reset for session {session_name}.")
-    else:
-        print(f"[!] No proxy set for session {session_name}.")
 
 def add_api_credentials():
     api_id = input("Enter API ID: ")
@@ -99,24 +93,13 @@ def reset_api_credentials():
     else:
         print("[!] No env.txt file found. Nothing to reset.")
 
-def reset_session():
-    if not os.path.exists("sessions"):
-        os.mkdir("sessions")
-    sessions = [f for f in os.listdir("sessions/") if f.endswith(".session")]
-    if not sessions:
-        print("[!] No sessions found.")
-        return
-    print("Available sessions:")
-    for i, session in enumerate(sessions, 1):
-        print(f"{i}. {session[:-8]}")
-    choice = input("Enter the number of the session to reset: ")
-    try:
-        session_to_reset = sessions[int(choice) - 1]
-        os.remove(os.path.join("sessions", session_to_reset))
-        reset_proxy(session_to_reset[:-8])  # Reset the proxy when session is reset
-        print(f"[+] Session {session_to_reset[:-8]} reset successfully.")
-    except (ValueError, IndexError):
-        print("[!] Invalid choice. Please try again.")
+def reset_proxy():
+    proxy_file = "proxy_list.txt"
+    if os.path.exists(proxy_file):
+        os.remove(proxy_file)
+        print("[+] Proxy list reset successfully.")
+    else:
+        print("[!] No proxy file found. Nothing to reset.")
 
 def load_api_credentials():
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
@@ -133,18 +116,26 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
-def save_session(name):
-    with open("sessions/sessions_list.txt", "a") as f:
-        f.write(name + "\n")
+def add_proxy():
+    proxy = input("Enter proxy (format: host:port or username:password@host:port): ")
+    session_name = input("Enter session name to assign this proxy to: ")
+    proxy_file = "proxy_list.txt"
+    with open(proxy_file, "a") as f:
+        f.write(f"{session_name}={proxy}\n")
+    print(f"[+] Proxy {proxy} added to session {session_name}.")
 
-def load_sessions():
-    if not os.path.exists("sessions/sessions_list.txt"):
-        return []
-    with open("sessions/sessions_list.txt", "r") as f:
-        return [line.strip() for line in f.readlines()]
+def load_proxy(session_name):
+    proxy_file = "proxy_list.txt"
+    if os.path.exists(proxy_file):
+        with open(proxy_file, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                if line.startswith(f"{session_name}="):
+                    return line.split('=')[1].strip()
+    return None
 
 def process():
-    global bot_token, token_expiration
+    global bot_token
     print(r"""  
         ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
         ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
@@ -153,15 +144,13 @@ def process():
         ██║ ╚═╝ ██║ ╚██████╔╝ ██║  ██║ ███████║ ██║ ██║ ╚████║
         ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝ ╚═╝  ╚═══╝
                                                 
-            NotPx Auto Paint & Claim by @helpppeeerrrrrr - v1.0""")
-
-    # Check if the bot token is still valid
-    if bot_token is None or (token_expiration is not None and datetime.now() >= token_expiration):
-        bot_token = input("Enter your bot token: ")
-        token_expiration = datetime.now() + timedelta(hours=2)  # Set expiration time to 2 hours
-        print(f"[+] Your bot token is valid for 2 hours from now.")
-
+        NotPx Auto Paint & Claim by @helpppeeerrrrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
+    
+    print("Starting Telegram bot...")
+    bot_token = input("Enter your bot token: ")
     bot = get_bot_instance(bot_token)
+    
+    # Start bot polling in a separate thread
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
 
@@ -187,12 +176,11 @@ def process():
                 if api_id and api_hash:
                     client = TelegramClient("sessions/" + name, api_id, api_hash).start()
                     client.disconnect()
-                    save_session(name)
-                    print("[+] Session {} saved successfully.".format(name))
+                    print(f"[+] Session {name} saved successfully.")
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[x] Session {} already exists.".format(name))
+                print(f"[x] Session {name} already exists.")
         elif option == "2":
             multithread_starter()
         elif option == "3":
@@ -202,11 +190,9 @@ def process():
         elif option == "5":
             reset_session()
         elif option == "6":
-            session_name = input("Enter session name to add proxy: ")
-            add_proxy(session_name)
+            add_proxy()
         elif option == "7":
-            session_name = input("Enter session name to reset proxy: ")
-            reset_proxy(session_name)
+            reset_proxy()
         elif option == "8":
             print("Exiting...")
             bot.stop_polling()
@@ -216,4 +202,6 @@ def process():
             print("[!] Invalid option. Please try again.")
 
 if __name__ == "__main__":
+    if not os.path.exists("sessions"):
+        os.mkdir("sessions")
     process()
