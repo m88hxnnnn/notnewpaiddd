@@ -159,6 +159,9 @@ def show_sessions():
 def process():
     global token_expiration, valid_bot_token
 
+    # Clear terminal screen before starting
+    os.system('cls' if os.name == 'nt' else 'clear')
+
     print(r"""  
         {red}███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
         ████╗ ████║ ██╔═══██╗ ██║  ██║ ██╔════╝ ██║ ████╗  ██║
