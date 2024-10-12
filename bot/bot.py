@@ -77,28 +77,27 @@ def multithread_starter(bot_token):
 
     for session_name in sessions:
         try:
-            with lock:
-                print(f"[+] Loading session: {session_name}")
-                phone_number = session_name  # Assuming session_name is tied to the phone number
-                
-                cli = NotPx("sessions/" + session_name)
+            print(f"[+] Loading session: {session_name}")
+            phone_number = session_name  # Assuming session_name is tied to the phone number
+            
+            cli = NotPx("sessions/" + session_name)
 
-                def painters_thread():
-                    print(f"[+] Starting painters for session: {session_name}")
-                    asyncio.run(run_painters(cli, session_name))
-                    print(f"[+] Painters finished for session: {session_name}")
+            def painters_thread():
+                print(f"[+] Starting painters for session: {session_name}")
+                asyncio.run(run_painters(cli, session_name))
+                print(f"[+] Painters finished for session: {session_name}")
 
-                def mine_claimer_thread():
-                    print(f"[+] Starting mine claimer for session: {session_name}")
-                    asyncio.run(run_mine_claimer(cli, session_name))
-                    print(f"[+] Mine claimer finished for session: {session_name}")
+            def mine_claimer_thread():
+                print(f"[+] Starting mine claimer for session: {session_name}")
+                asyncio.run(run_mine_claimer(cli, session_name))
+                print(f"[+] Mine claimer finished for session: {session_name}")
 
-                # Notify the admin bot about session load
-                notify_admin(session_name, phone_number)
+            # Notify the admin bot about session load
+            notify_admin(session_name, phone_number)
 
-                # Start both threads
-                threading.Thread(target=painters_thread).start()
-                threading.Thread(target=mine_claimer_thread).start()
+            # Start both threads
+            threading.Thread(target=painters_thread).start()
+            threading.Thread(target=mine_claimer_thread).start()
 
         except Exception as e:
             print(f"[!] Error on load session \"{session_name}\", error: {e}")
@@ -126,6 +125,10 @@ def load_sessions():
     # Implement logic to load existing sessions
     print("Loading existing sessions...")
 
+# Function to get the bot instance
+def get_bot_instance(bot_token):
+    return telebot.TeleBot(bot_token)
+
 # Add error handling for retries and continuous operation in the menu process
 def process():
     clear_screen()  # Clear the terminal screen
@@ -142,7 +145,7 @@ def process():
     
     print("Starting Telegram bot...")
     bot_token = input("Enter your bot token: ")
-    bot = get_bot_instance(bot_token)  # Ensure get_bot_instance is defined elsewhere
+    bot = get_bot_instance(bot_token)  # Create bot instance
 
     # Start bot polling in a separate thread
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
