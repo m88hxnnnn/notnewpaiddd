@@ -12,7 +12,6 @@ import telebot
 from datetime import datetime
 import random
 import platform
-import time
 
 # Function to clear the console
 def clear_console():
@@ -117,20 +116,6 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
-def load_session_with_retry(session_name, retries=5):
-    for attempt in range(retries):
-        try:
-            cli = NotPx("sessions/" + session_name)
-            return cli
-        except Exception as e:
-            if "database is locked" in str(e):
-                print("[!] Database is locked. Retrying...")
-                time.sleep(2)  # Wait before retrying
-            else:
-                print(f"[!] Error loading session: {e}")
-                break
-    return None
-
 async def run_painters(cli, session_name, logger):
     logger.info("Started painters process")
     await painters(cli, session_name)
@@ -149,10 +134,7 @@ def multithread_starter():
     for session_name in sessions:
         logger = setup_logger(session_name)  # Create a logger for each session
         try:
-            cli = load_session_with_retry(session_name)
-            if cli is None:
-                logger.error(f"Failed to load session: {session_name}")
-                continue
+            cli = NotPx("sessions/" + session_name)
 
             # Start painters and mine_claimers asynchronously
             asyncio.run(run_painters(cli, session_name, logger))
@@ -215,6 +197,21 @@ def process():
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[!] Session name already exists.")
-        
+                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
+            multithread_starter()
+        elif option == "3":
+            add_api_credentials()
+        elif option == "4":
+            reset_api_credentials()
+        elif option == "5":
+            reset_session()
+        elif option == "6":
+            stop_bot_polling()  # Stop polling when exiting
+            print("[+] Exiting...")
+            break
+        else:
+            print("[!] Invalid option. Please try again.")
+
+if __name__ == "__main__":
+    process()
