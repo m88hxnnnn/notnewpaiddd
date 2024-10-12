@@ -216,13 +216,16 @@ def process():
                 try:
                     # Start the client and authorize
                     asyncio.run(client.start())
-                    print(f"[+] Session '{unique_session_name}' created successfully.")
+                    print(f"[+] Successfully created session: {unique_session_name}")
+                    # Save the session
+                    await client.disconnect()
                 except Exception as e:
                     print(f"[!] Failed to create session: {e}")
             else:
-                print("[!] API credentials not found. Please set them first.")
+                print("[!] API credentials not found. Please add them first.")
 
         elif choice == "2":
+            print("[+] Starting mining and claiming process...")
             asyncio.run(multithread_starter())
 
         elif choice == "3":
@@ -232,8 +235,8 @@ def process():
             reset_session()
 
         elif choice == "5":
-            stop_bot_polling()  # Stop the bot polling before exiting
-            print("Exiting...")
+            stop_bot_polling()  # Stop polling before exiting
+            print("[+] Exiting program.")
             break
 
         else:
