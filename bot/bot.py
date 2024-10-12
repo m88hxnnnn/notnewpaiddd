@@ -217,10 +217,14 @@ def process():
 
                     async def create_session():
                         try:
-                        client.start()
-                        print(f"[+] Session '{unique_name}' added successfully!")
-                    except Exception as e:
-                        print(f"[!] Failed to add session: {e}")
+                            await client.start()
+                            print(f"[+] Session '{unique_name}' added successfully!")
+                        except Exception as e:
+                            print(f"[!] Failed to add session: {e}")
+
+                    # Start the session creation asynchronously
+                    asyncio.run(create_session())
+
                 else:
                     print("[!] Please set your API ID and Hash first.")
             else:
