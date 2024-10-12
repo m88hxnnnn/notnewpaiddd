@@ -138,11 +138,11 @@ def load_sessions():
         return [line.strip() for line in f.readlines()]
 
 def show_sessions():
+    print("[+] Active Sessions:")
     sessions = load_sessions()
     if sessions:
-        print("[+] Active Sessions:")
         for session in sessions:
-            print(f"  - {session}")
+            print(f" - {session}")
     else:
         print("[!] No active sessions found.")
 
@@ -176,12 +176,12 @@ def process():
         print("\nMain Menu:")
         print("1. Add Account session")
         print("2. Start Mine + Claim")
-        print("3. Add API ID and Hash")
-        print("4. Reset API Credentials")
-        print("5. Reset Session")
-        print("6. Add Proxy")
-        print("7. Reset Proxy")
-        print("8. Show Active Sessions")  # New option for showing sessions
+        print("3. Show Active Sessions")
+        print("4. Add API ID and Hash")
+        print("5. Reset API Credentials")
+        print("6. Reset Session")
+        print("7. Add Proxy")
+        print("8. Reset Proxy")
         print("9. Exit")
         
         option = input("Enter your choice: ")
@@ -204,17 +204,17 @@ def process():
         elif option == "2":
             multithread_starter(valid_bot_token)  # Pass the valid bot token
         elif option == "3":
-            add_api_credentials()
+            show_sessions()  # Calls the function to show active sessions
         elif option == "4":
-            reset_api_credentials()
+            add_api_credentials()
         elif option == "5":
-            reset_session()
+            reset_api_credentials()
         elif option == "6":
-            add_proxy()  # Calls the function to add a proxy
+            reset_session()
         elif option == "7":
-            reset_proxy()
+            add_proxy()  # Calls the function to add a proxy
         elif option == "8":
-            show_sessions()  # Call the function to show active sessions
+            reset_proxy()
         elif option == "9":
             print("Exiting...")
             bot.stop_polling()
