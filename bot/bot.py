@@ -1,16 +1,14 @@
 import os
 import threading
 import asyncio
-import requests
-import json
+import telebot
+from telethon.sync import TelegramClient
 from bot.painter import painters
 from bot.mineclaimer import mine_claimer
-from bot.utils import Colors
 from bot.notpx import NotPx
-from telethon.sync import TelegramClient
-import telebot
+from bot.utils import Colors
 
-# Global variable to store bot instances and their threads
+# Global variable to store the bot instances and their threads
 bot_instances = {}
 bot_threads = {}
 
@@ -19,8 +17,22 @@ def get_bot_instance(bot_token):
         bot_instances[bot_token] = telebot.TeleBot(bot_token)
     return bot_instances[bot_token]
 
+def start_bot_thread(bot_token):
+    if bot_token in bot_threads:
+        print("[!] This bot instance is already running.")
+        return
+    
+    bot = get_bot_instance(bot_token)
+    
+    # Start bot polling in a separate thread
+    bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
+    bot_thread.start()
+    
+    bot_threads[bot_token] = bot_thread
+    print(f"[+] Bot started successfully with token: {bot_token}")
+
 def multithread_starter(bot_token):
-    print("License check removed. Starting the script...")
+    print("Starting the script...")
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
     dirs = os.listdir("sessions/")
@@ -37,11 +49,10 @@ def multithread_starter(bot_token):
             def run_mine_claimer():
                 asyncio.run(mine_claimer(cli, session_name))
 
-            # Start threads for painters and mine claimers
             threading.Thread(target=run_painters).start()
             threading.Thread(target=run_mine_claimer).start()
         except Exception as e:
-            print("[!] {}Error on load session{} \"{}\", error: {}".format(Colors.RED, Colors.END, session_name, e))
+            print(f"[!] Error on load session \"{session_name}\", error: {e}")
 
 def add_api_credentials():
     api_id = input("Enter API ID: ")
@@ -93,16 +104,6 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
-def process_user(bot_token):
-    print(f"Starting Telegram bot for token: {bot_token}")
-    bot = get_bot_instance(bot_token)  # Get the bot instance with the provided token
-    
-    # Start bot polling in a separate thread
-    bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
-    bot_thread.start()
-    
-    return bot_thread
-
 def process():
     print(r"""{}
         ███╗   ███╗  ██████╗  ██╗  ██╗ ███████╗ ██╗ ███╗   ██╗
@@ -113,7 +114,12 @@ def process():
         ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝ ╚═╝  ╚═══╝
                                                 
             NotPx Auto Paint & Claim by @helpppeeerrrr - v1.0 {}""".format(Colors.BLUE, Colors.END))
-
+    
+    print("Starting Telegram bot...")
+    bot_token = input("Enter your bot token: ")
+    
+    start_bot_thread(bot_token)  # Start bot in a new thread
+    
     while True:
         print("\nMain Menu:")
         print("1. Add Account session")
@@ -134,20 +140,13 @@ def process():
                 if api_id and api_hash:
                     client = TelegramClient("sessions/" + name, api_id, api_hash).start()
                     client.disconnect()
-                    print("[+] Session {} {}saved success{}.".format(name, Colors.GREEN, Colors.END))
+                    print("[+] Session {} {}saved successfully{}.".format(name, Colors.GREEN, Colors.END))
                 else:
                     print("[!] API credentials not found. Please add them first.")
             else:
-                print("[x] Session {} {}already exist{}.".format(name, Colors.RED, Colors.END))
-        
+                print("[x] Session {} {}already exists{}.".format(name, Colors.RED, Colors.END))
         elif option == "2":
-            bot_token = input("Enter your bot token: ")
-            if bot_token not in bot_threads or not bot_threads[bot_token].is_alive():
-                bot_thread = process_user(bot_token)
-                bot_threads[bot_token] = bot_thread
-            else:
-                print("[!] Bot for this token is already running.")
-        
+            multithread_starter(bot_token)  # Pass the bot token here
         elif option == "3":
             add_api_credentials()
         elif option == "4":
@@ -156,9 +155,10 @@ def process():
             reset_session()
         elif option == "6":
             print("Exiting...")
-            for token, thread in bot_threads.items():
-                if thread.is_alive():
-                    thread.join()
+            if bot_token in bot_threads:
+                bot = bot_instances[bot_token]
+                bot.stop_polling()
+                bot_threads[bot_token].join()  # Wait for the bot thread to finish
             break
         else:
             print("[!] Invalid option. Please try again.")
