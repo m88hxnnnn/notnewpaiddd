@@ -1,9 +1,4 @@
-import sys
-from bot import bot
+from bot import process  # Import process function from bot module
 
-if __name__ == '__main__':
-    try:
-        bot.process()
-    except KeyboardInterrupt:
-        print("Bot stopped by user...")
-        sys.exit(2)
+if __name__ == "__main__":
+    process()  # Call the process function
