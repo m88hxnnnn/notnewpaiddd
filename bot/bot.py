@@ -17,8 +17,8 @@ lock = threading.Lock()
 token_expiration = None  # To store the token expiration time
 valid_bot_token = None  # To store the valid bot token
 
-# Colors class with additional colors
 class Colors:
+    """Colors class for terminal output."""
     END = "\033[0m"
     RED = "\033[91m"
     GREEN = "\033[92m"
@@ -28,37 +28,36 @@ class Colors:
     MAGENTA = "\033[95m"  # Added MAGENTA color
 
 def get_bot_instance(bot_token):
+    """Get or create a Telebot instance."""
     global valid_bot_token, token_expiration
     if bot_token not in bot_instances:
         bot_instances[bot_token] = telebot.TeleBot(bot_token)
     return bot_instances[bot_token]
 
 async def run_mine_claimer(cli, session_name):
+    """Run the mine claimer asynchronously."""
     await mine_claimer(cli, session_name)
 
 async def run_painters(cli, session_name):
+    """Run the painter asynchronously."""
     await painters(cli, session_name)
 
-def run_async_functions(cli, session_name):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(asyncio.gather(
-            run_mine_claimer(cli, session_name),
-            run_painters(cli, session_name)
-        ))
-    finally:
-        loop.close()
+async def run_async_tasks(cli, session_name):
+    """Run mine claimer and painter tasks together."""
+    await asyncio.gather(
+        run_mine_claimer(cli, session_name),
+        run_painters(cli, session_name)
+    )
 
 def multithread_starter(bot_token):
+    """Start multithreaded claiming and mining process."""
     print(f"{Colors.MAGENTA}✨ Starting the mining and claiming process... ✨{Colors.END}")
 
     if not os.path.exists("sessions"):
         os.mkdir("sessions")
 
     dirs = os.listdir("sessions/")
-    sessions = list(filter(lambda x: x.endswith(".session"), dirs))
-    sessions = list(map(lambda x: x.split(".session")[0], sessions))
+    sessions = [x.split(".session")[0] for x in dirs if x.endswith(".session")]
 
     if not sessions:
         print(f"{Colors.RED}[!] No sessions found.{Colors.END}")
@@ -68,70 +67,18 @@ def multithread_starter(bot_token):
         try:
             with lock:
                 print(f"\n{Colors.CYAN}[+] Loading session: {session_name}{Colors.END}")
-                cli = NotPx("sessions/" + session_name)
+                cli = NotPx(f"sessions/{session_name}")
 
-                # Proxy reference removed
                 print(f"{Colors.YELLOW}⚡ Running session for {session_name}.{Colors.END}")
 
-                threading.Thread(target=run_async_functions, args=(cli, session_name)).start()
+                threading.Thread(target=asyncio.run, args=(run_async_tasks(cli, session_name),)).start()
         except Exception as e:
             print(f"{Colors.RED}[!] Error on loading session \"{session_name}\", error: {e}{Colors.END}")
 
-def add_api_credentials():
-    api_id = input(f"{Colors.BLUE}🔑 Enter API ID: {Colors.END}")
-    api_hash = input(f"{Colors.BLUE}🔑 Enter API Hash: {Colors.END}")
-    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
-    with open(env_path, "w") as f:
-        f.write(f"API_ID={api_id}\n")
-        f.write(f"API_HASH={api_hash}\n")
-    print(f"{Colors.GREEN}[+] API credentials saved successfully in env.txt file.{Colors.END}")
-
-def reset_api_credentials():
-    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
-    if os.path.exists(env_path):
-        os.remove(env_path)
-        print(f"{Colors.GREEN}[+] API credentials reset successfully.{Colors.END}")
-    else:
-        print(f"{Colors.RED}[!] No env.txt file found. Nothing to reset.{Colors.END}")
-
-def load_api_credentials():
-    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.txt')
-    if os.path.exists(env_path):
-        with open(env_path, 'r') as f:
-            lines = f.readlines()
-            api_id = None
-            api_hash = None
-            for line in lines:
-                if line.startswith('API_ID='):
-                    api_id = line.split('=')[1].strip()
-                elif line.startswith('API_HASH='):
-                    api_hash = line.split('=')[1].strip()
-            return api_id, api_hash
-    return None, None
-
-def save_session(name):
-    with open("sessions/sessions_list.txt", "a") as f:
-        f.write(name + "\n")
-
-def load_sessions():
-    if not os.path.exists("sessions/sessions_list.txt"):
-        return []
-    with open("sessions/sessions_list.txt", "r") as f:
-        return [line.strip() for line in f.readlines()]
-
-def show_sessions():
-    print(f"\n{Colors.GREEN}[+] Active Sessions:{Colors.END}")
-    sessions = load_sessions()
-    if sessions:
-        for session in sessions:
-            print(f" - {Colors.CYAN}{session}{Colors.END}")
-    else:
-        print(f"{Colors.RED}[!] No active sessions found.{Colors.END}")
-
 def process():
+    """Main process for starting the script and managing options."""
     global token_expiration, valid_bot_token
 
-    # Clearing screen before running
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print(r"""  
@@ -152,11 +99,11 @@ def process():
     else:
         print(f"{Colors.GREEN}[+] Using cached bot token. It is valid until {token_expiration}.{Colors.END}")
 
-    bot = get_bot_instance(valid_bot_token)  # Get the bot instance with the valid token
+    bot = get_bot_instance(valid_bot_token)
     
     bot_thread = threading.Thread(target=bot.polling, kwargs={"none_stop": True})
     bot_thread.start()
-    
+
     while True:
         print("\n{0}✨ Main Menu: ✨{1}".format(Colors.YELLOW, Colors.END))
         print("1. Add Account Session")
