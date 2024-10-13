@@ -1,4 +1,3 @@
-import time
 import random
 import asyncio
 from bot.utils import night_sleep, Colors
@@ -19,7 +18,7 @@ async def mine_claimer(NotPxClient, session_name):
             fromStart = acc_data['fromStart']
             speedPerSecond = acc_data['speedPerSecond']
             maxMiningTime = acc_data['maxMiningTime'] / 60
-            random_recharge_speed = random.randint(30,90)
+            random_recharge_speed = random.randint(30, 90)
 
             if fromStart * speedPerSecond > 0.3:
                 claimed_count = round(NotPxClient.claim_mining(), 2)
@@ -30,5 +29,5 @@ async def mine_claimer(NotPxClient, session_name):
         else:
             print("[!] {}{}{}: {}Unexpected account data format. Retrying...{}".format(Colors.CYAN, session_name, Colors.END, Colors.RED, Colors.END))
         
-        print("[!] {}{}{}: Sleeping for {} minutes...".format(Colors.CYAN, session_name, Colors.END,round((maxMiningTime+random_recharge_speed)/60),2))
-        await asyncio.sleep(maxMiningTime+random_recharge_speed)
+        print("[!] {}{}{}: Sleeping for {} minutes...".format(Colors.CYAN, session_name, Colors.END, round((maxMiningTime + random_recharge_speed) / 60, 2)))
+        await asyncio.sleep(maxMiningTime + random_recharge_speed)
